@@ -90,6 +90,13 @@ class InstallerController extends Controller
         // Run migrations sobre la conexión temporal
         Artisan::call('migrate', ['--force' => true, '--database' => 'temp_install']);
 
+        // Crear enlace simbólico public/storage → storage/app/public
+        try {
+            Artisan::call('storage:link');
+        } catch (\Throwable) {
+            // Ignorar si ya existe el enlace o el directorio
+        }
+
         // Crear el usuario administrador utilizando la conexión por defecto
         // (hemos establecido 'temp_install' como conexión por defecto para esta ejecución)
         if (! empty($data['admin_email'])) {
