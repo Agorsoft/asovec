@@ -52,7 +52,7 @@ class RegistrationForm
                             ->relationship(
                                 name: 'event',
                                 titleAttribute: 'name',
-                                modifyQueryUsing: fn ($query) => $query->orderBy('sort_order')->orderBy('name'),
+                                modifyQueryUsing: fn ($query) => $query->orderBy('start_date', 'desc')->orderBy('name'),
                             )
                             ->searchable()
                             ->preload()
