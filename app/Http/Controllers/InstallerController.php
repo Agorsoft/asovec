@@ -122,14 +122,38 @@ class InstallerController extends Controller
 
         foreach ($values as $key => $value) {
             $escaped = preg_quote($key, '/');
+            $formatted = $this->formatEnvValue((string) $value);
 
             if (preg_match("/^{$escaped}=.*/m", $env)) {
-                $env = preg_replace("/^{$escaped}=.*/m", "{$key}={$value}", $env);
+                $env = preg_replace("/^{$escaped}=.*/m", "{$key}={$formatted}", $env);
             } else {
-                $env .= PHP_EOL."{$key}={$value}";
+                $env .= PHP_EOL."{$key}={$formatted}";
             }
         }
 
         file_put_contents($envPath, $env);
+    }
+
+    /**
+     * Envuelve el valor en comillas dobles si contiene caracteres especiales
+     * que romperían el formato .env: espacios, #, =, comillas o backslashes.
+     */
+    protected function formatEnvValue(string $value): string
+    {
+        if ($value === '') {
+            return '';
+        }
+
+        // Si ya es un valor booleano o numérico simple, no necesita comillas.
+        if (in_array($value, ['true', 'false', 'null'], strict: true) || is_numeric($value)) {
+            return $value;
+        }
+
+        // Si contiene caracteres que rompen el .env, envolver en comillas dobles.
+        if (preg_match('/[\s#"\'=\\\\]/', $value)) {
+            return '"'.str_replace(['\\', '"'], ['\\\\', '\\"'], $value).'"';
+        }
+
+        return $value;
     }
 }
