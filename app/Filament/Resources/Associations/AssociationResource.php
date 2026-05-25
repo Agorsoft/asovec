@@ -67,7 +67,7 @@ class AssociationResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return true;
+        return auth()->user()?->is_admin ?? false;
     }
 
     public static function canView(Model $record): bool
@@ -75,14 +75,14 @@ class AssociationResource extends Resource
         return true;
     }
 
-    public static function canEdit(Model $record): bool
-    {
-        return true;
-    }
-
     public static function canCreate(): bool
     {
-        return ! Association::query()->exists();
+        return auth()->user()?->is_admin && ! Association::query()->exists();
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()?->is_admin ?? false;
     }
 
     public static function canDelete(Model $record): bool

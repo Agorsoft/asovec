@@ -15,6 +15,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 class LabelTemplateResource extends Resource
@@ -23,8 +24,11 @@ class LabelTemplateResource extends Resource
 
     // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTag;
     protected static ?string $modelLabel = 'Plantilla de etiquetas';
+
     protected static ?string $pluralModelLabel = 'Plantillas de etiquetas';
+
     protected static ?string $navigationLabel = 'Plantillas de etiquetas';
+
     protected static string|UnitEnum|null $navigationGroup = 'Configuración';
 
     protected static ?int $navigationSort = 20;
@@ -57,5 +61,25 @@ class LabelTemplateResource extends Resource
             'view' => ViewLabelTemplate::route('/{record}'),
             'edit' => EditLabelTemplate::route('/{record}/edit'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->check();
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasPermission('labels.manage') ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()?->hasPermission('labels.manage') ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()?->hasPermission('labels.manage') ?? false;
     }
 }

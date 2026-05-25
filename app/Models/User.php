@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\UserType;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -14,7 +15,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
-#[Fillable(['name', 'email', 'password', 'is_admin'])]
+#[Fillable(['name', 'email', 'password', 'is_admin', 'user_type'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -32,12 +33,28 @@ class User extends Authenticatable implements FilamentUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_admin' => 'boolean',
+            'user_type' => UserType::class,
         ];
     }
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return (bool) $this->is_admin;
+        return $this->is_admin || $this->user_type !== null;
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        if ($this->is_admin || $this->user_type === UserType::Administrador) {
+            return true;
+        }
+
+        if ($this->user_type === null) {
+            return false;
+        }
+
+        $permissions = Association::first()?->role_permissions[$this->user_type->value] ?? [];
+
+        return in_array($permission, $permissions, true);
     }
 
     /**

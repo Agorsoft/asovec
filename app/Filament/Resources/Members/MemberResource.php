@@ -8,6 +8,8 @@ use App\Filament\Resources\Members\Pages\EditNonMember;
 use App\Filament\Resources\Members\Pages\ListMembers;
 use App\Filament\Resources\Members\Pages\ViewMember;
 use App\Filament\Resources\Members\Pages\ViewNonMember;
+use App\Filament\Resources\Members\RelationManagers\QuotasRelationManager;
+use App\Filament\Resources\Members\RelationManagers\RegistrationsRelationManager;
 use App\Filament\Resources\Members\Schemas\MemberForm;
 use App\Filament\Resources\Members\Schemas\MemberInfolist;
 use App\Filament\Resources\Members\Tables\MembersTable;
@@ -26,8 +28,11 @@ class MemberResource extends Resource
 
     // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
     protected static ?string $modelLabel = 'Socio';
+
     protected static ?string $pluralModelLabel = 'Socios';
+
     protected static ?string $navigationLabel = 'Socios';
+
     protected static string|UnitEnum|null $navigationGroup = 'Gestión de Socios';
 
     public static function form(Schema $schema): Schema
@@ -48,14 +53,9 @@ class MemberResource extends Resource
     public static function getRelations(): array
     {
         return [
-            \App\Filament\Resources\Members\RelationManagers\QuotasRelationManager::class,
-            \App\Filament\Resources\Members\RelationManagers\RegistrationsRelationManager::class,
+            QuotasRelationManager::class,
+            RegistrationsRelationManager::class,
         ];
-    }
-
-    public static function canDelete(Model $record): bool
-    {
-        return false;
     }
 
     public static function canDeleteAny(): bool
@@ -73,5 +73,25 @@ class MemberResource extends Resource
             'edit' => EditMember::route('/{record}/edit'),
             'edit-non-member' => EditNonMember::route('/{record}/edit-non-member'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasPermission('members.view') ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasPermission('members.create') ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()?->hasPermission('members.edit') ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()?->is_admin ?? false;
     }
 }

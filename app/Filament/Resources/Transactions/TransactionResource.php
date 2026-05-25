@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Transactions;
 
+use App\Enums\TransactionSourceType;
 use App\Filament\Resources\Transactions\Pages\CreateTransaction;
 use App\Filament\Resources\Transactions\Pages\EditTransaction;
 use App\Filament\Resources\Transactions\Pages\ListTransactions;
@@ -9,7 +10,6 @@ use App\Filament\Resources\Transactions\Pages\ViewTransaction;
 use App\Filament\Resources\Transactions\Schemas\TransactionForm;
 use App\Filament\Resources\Transactions\Schemas\TransactionInfolist;
 use App\Filament\Resources\Transactions\Tables\TransactionsTable;
-use App\Enums\TransactionSourceType;
 use App\Models\Transaction;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -49,16 +49,6 @@ class TransactionResource extends Resource
         return TransactionsTable::configure($table);
     }
 
-    public static function canEdit(Model $record): bool
-    {
-        return $record->source_type === TransactionSourceType::Manual;
-    }
-
-    public static function canDelete(Model $record): bool
-    {
-        return $record->source_type === TransactionSourceType::Manual;
-    }
-
     public static function getRelations(): array
     {
         return [
@@ -74,5 +64,27 @@ class TransactionResource extends Resource
             'view' => ViewTransaction::route('/{record}'),
             'edit' => EditTransaction::route('/{record}/edit'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasPermission('transactions.view') ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasPermission('transactions.create') ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return (auth()->user()?->hasPermission('transactions.edit') ?? false)
+            && $record->source_type === TransactionSourceType::Manual;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return (auth()->user()?->is_admin ?? false)
+            && $record->source_type === TransactionSourceType::Manual;
     }
 }

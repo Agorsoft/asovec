@@ -24,9 +24,13 @@ class QuotaTypeResource extends Resource
 
     // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
     protected static ?string $modelLabel = 'Tipo de cuota';
+
     protected static ?string $pluralModelLabel = 'Tipos de cuota';
+
     protected static ?string $navigationLabel = 'Tipos de cuota';
+
     protected static string|UnitEnum|null $navigationGroup = 'Configuración';
+
     protected static ?int $navigationSort = 3;
 
     public static function form(Schema $schema): Schema
@@ -61,13 +65,23 @@ class QuotaTypeResource extends Resource
         ];
     }
 
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->is_admin ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->is_admin ?? false;
+    }
+
     public static function canEdit(Model $record): bool
     {
-        return true;
+        return auth()->user()?->is_admin ?? false;
     }
 
     public static function canDelete(Model $record): bool
     {
-        return ! $record->quotas()->exists();
+        return auth()->user()?->is_admin && ! $record->quotas()->exists();
     }
 }

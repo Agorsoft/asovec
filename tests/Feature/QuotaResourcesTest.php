@@ -9,6 +9,7 @@ use App\Enums\TransactionType;
 use App\Filament\Resources\Quotas\Pages\CreateQuota;
 use App\Filament\Resources\Quotas\Pages\EditQuota;
 use App\Filament\Resources\Quotas\Pages\ListQuotas;
+use App\Filament\Resources\Quotas\QuotaResource;
 use App\Filament\Resources\Quotas\Schemas\QuotaForm;
 use App\Filament\Resources\QuotaTypes\Pages\CreateQuotaType;
 use App\Filament\Resources\QuotaTypes\QuotaTypeResource;
@@ -104,6 +105,8 @@ test('las opciones de estado cambian entre crear y editar cuota', function () {
 });
 
 test('un tipo de cuota en uso se puede editar pero no borrar', function () {
+    $this->actingAs(User::factory()->create(['is_admin' => true]));
+
     $quotaType = QuotaType::query()->create([
         'name' => 'Tipo en uso',
         'period_type' => PaymentPeriod::Mensual->value,
@@ -133,6 +136,8 @@ test('un tipo de cuota en uso se puede editar pero no borrar', function () {
 });
 
 test('se puede borrar un tipo de cuota sin cuotas asociadas', function () {
+    $this->actingAs(User::factory()->create(['is_admin' => true]));
+
     $quotaType = QuotaType::query()->create([
         'name' => 'Tipo libre',
         'period_type' => PaymentPeriod::Mensual->value,
@@ -391,14 +396,14 @@ test('listado de cuotas incluye exportacion inmediata con columnas opcionales', 
         ->callMountedTableAction();
 });
 
-    test('listado de cuotas expone acciones de impresion por tipo', function () {
-        $this->actingAs(User::factory()->create(['is_admin' => true]));
+test('listado de cuotas expone acciones de impresion por tipo', function () {
+    $this->actingAs(User::factory()->create(['is_admin' => true]));
 
-        Livewire::test(ListQuotas::class)
+    Livewire::test(ListQuotas::class)
         ->assertTableActionExists('printReceiptFull')
         ->assertTableActionExists('printReceiptAssociation')
         ->assertTableActionExists('printReceiptMember');
-    });
+});
 
 test('al cancelar una cuota pagada se genera transacción de devolución', function () {
     Association::factory()->create([
@@ -764,8 +769,8 @@ test('no se puede eliminar una cuota desde el recurso', function () {
         'status' => QuotaStatus::Pendiente->value,
     ]);
 
-    expect(\App\Filament\Resources\Quotas\QuotaResource::canDelete($quota))->toBeFalse()
-        ->and(\App\Filament\Resources\Quotas\QuotaResource::canDeleteAny())->toBeFalse();
+    expect(QuotaResource::canDelete($quota))->toBeFalse()
+        ->and(QuotaResource::canDeleteAny())->toBeFalse();
 });
 
 test('accion cancelar cuota desde tabla cambia estado y genera transaccion de reembolso si estaba pagada', function () {

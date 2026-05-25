@@ -14,6 +14,7 @@ use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 class DocumentTemplateResource extends Resource
@@ -22,9 +23,13 @@ class DocumentTemplateResource extends Resource
 
     // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
     protected static ?string $modelLabel = 'Plantilla de documento';
+
     protected static ?string $pluralModelLabel = 'Plantillas de documentos';
+
     protected static ?string $navigationLabel = 'Plantillas de documentos';
+
     protected static string|UnitEnum|null $navigationGroup = 'Configuración';
+
     protected static ?int $navigationSort = 25;
 
     public static function form(Schema $schema): Schema
@@ -45,10 +50,30 @@ class DocumentTemplateResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => ListDocumentTemplates::route('/'),
+            'index' => ListDocumentTemplates::route('/'),
             'create' => CreateDocumentTemplate::route('/create'),
-            'view'   => ViewDocumentTemplate::route('/{record}'),
-            'edit'   => EditDocumentTemplate::route('/{record}/edit'),
+            'view' => ViewDocumentTemplate::route('/{record}'),
+            'edit' => EditDocumentTemplate::route('/{record}/edit'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->check();
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasPermission('documents.manage') ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()?->hasPermission('documents.manage') ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()?->hasPermission('documents.manage') ?? false;
     }
 }

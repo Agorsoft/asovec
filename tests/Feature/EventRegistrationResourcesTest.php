@@ -1,7 +1,7 @@
 <?php
 
-use App\Enums\EventType;
 use App\Enums\EventStatus;
+use App\Enums\EventType;
 use App\Enums\MemberStatus;
 use App\Enums\MemberType;
 use App\Enums\PaymentMethod;
@@ -17,7 +17,6 @@ use App\Filament\Resources\Events\RelationManagers\RegistrationsRelationManager;
 use App\Filament\Resources\Registrations\Pages\CreateRegistration;
 use App\Filament\Resources\Registrations\Pages\EditRegistration;
 use App\Filament\Resources\Registrations\Pages\ListRegistrations;
-use App\Filament\Resources\Registrations\Pages\ViewRegistration;
 use App\Filament\Resources\Registrations\Schemas\RegistrationForm;
 use App\Models\Association;
 use App\Models\Event;
@@ -40,6 +39,8 @@ test('el recurso de eventos registra la relacion de inscripciones', function () 
 });
 
 test('evento solo se puede eliminar si no tiene inscripciones', function () {
+    $this->actingAs(User::factory()->create(['is_admin' => true]));
+
     $eventWithoutRegistrations = Event::factory()->create();
 
     $eventWithRegistrations = Event::factory()->create();
@@ -268,7 +269,7 @@ test('las opciones de acompañante incluyen no socios y socios no activos', func
         'status' => MemberStatus::Activo->value,
     ]);
 
-    $get = \Mockery::mock(Get::class);
+    $get = Mockery::mock(Get::class);
     $get->shouldReceive('__invoke')
         ->with('registration_type')
         ->andReturn(RegistrationType::Acompanante->value);
@@ -814,7 +815,7 @@ test('un socio con status Pendiente no puede inscribirse como Socio', function (
         'event_id' => $event->id,
         'member_id' => $pendingMember->id,
         'registration_type' => RegistrationType::Socio->value,
-    ]))->toThrow(Illuminate\Validation\ValidationException::class, 'al corriente de pago');
+    ]))->toThrow(ValidationException::class, 'al corriente de pago');
 });
 
 test('un socio con status Baja puede inscribirse como NoSocio', function () {

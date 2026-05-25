@@ -12,10 +12,10 @@ use App\Filament\Resources\Quotas\Tables\QuotasTable;
 use App\Models\Quota;
 use BackedEnum;
 use Filament\Resources\Resource;
-use Illuminate\Database\Eloquent\Model;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 class QuotaResource extends Resource
@@ -32,11 +32,6 @@ class QuotaResource extends Resource
     protected static ?string $navigationLabel = 'Cuotas';
 
     protected static string|UnitEnum|null $navigationGroup = 'Gestión de Socios';
-
-    public static function canDelete(Model $record): bool
-    {
-        return false;
-    }
 
     public static function canDeleteAny(): bool
     {
@@ -73,5 +68,25 @@ class QuotaResource extends Resource
             'view' => ViewQuota::route('/{record}'),
             'edit' => EditQuota::route('/{record}/edit'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasPermission('quotas.view') ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasPermission('quotas.create') ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()?->hasPermission('quotas.edit') ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return false;
     }
 }

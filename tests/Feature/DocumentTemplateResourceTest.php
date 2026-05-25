@@ -12,7 +12,7 @@ use function Pest\Laravel\assertDatabaseHas;
 covers(DocumentTemplate::class);
 
 beforeEach(function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(User::factory()->create(['is_admin' => true]));
 });
 
 test('lista plantillas de documentos', function () {
@@ -22,12 +22,11 @@ test('lista plantillas de documentos', function () {
         ->assertCanSeeTableRecords($templates);
 });
 
-
 test('valida campos requeridos al crear', function () {
     Livewire::test(CreateDocumentTemplate::class)
         ->fillForm([
-            'name'      => null,
-            'type'      => null,
+            'name' => null,
+            'type' => null,
             'file_path' => null,
         ])
         ->call('create')

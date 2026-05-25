@@ -42,6 +42,7 @@ use Illuminate\Support\Facades\DB;
     'bank_province',
     'bank_country',
     'installed_at',
+    'role_permissions',
 ])]
 class Association extends Model
 {
@@ -187,6 +188,7 @@ class Association extends Model
             'last_member_number' => 'integer',
             'last_receipt_number' => 'integer',
             'installed_at' => 'datetime',
+            'role_permissions' => 'array',
         ];
     }
 }

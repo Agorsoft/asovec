@@ -6,6 +6,7 @@ use App\Filament\Resources\Events\Pages\CreateEvent;
 use App\Filament\Resources\Events\Pages\EditEvent;
 use App\Filament\Resources\Events\Pages\ListEvents;
 use App\Filament\Resources\Events\Pages\ViewEvent;
+use App\Filament\Resources\Events\RelationManagers\RegistrationsRelationManager;
 use App\Filament\Resources\Events\Schemas\EventForm;
 use App\Filament\Resources\Events\Schemas\EventInfolist;
 use App\Filament\Resources\Events\Tables\EventsTable;
@@ -51,13 +52,8 @@ class EventResource extends Resource
     public static function getRelations(): array
     {
         return [
-            \App\Filament\Resources\Events\RelationManagers\RegistrationsRelationManager::class,
+            RegistrationsRelationManager::class,
         ];
-    }
-
-    public static function canDelete(Model $record): bool
-    {
-        return ! $record->registrations()->exists();
     }
 
     public static function getPages(): array
@@ -68,5 +64,26 @@ class EventResource extends Resource
             'view' => ViewEvent::route('/{record}'),
             'edit' => EditEvent::route('/{record}/edit'),
         ];
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()?->hasPermission('events.view') ?? false;
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()?->hasPermission('events.create') ?? false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()?->hasPermission('events.edit') ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return (auth()->user()?->is_admin ?? false)
+            && ! $record->registrations()->exists();
     }
 }
