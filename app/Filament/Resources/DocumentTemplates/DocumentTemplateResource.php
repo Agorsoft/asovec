@@ -10,6 +10,7 @@ use App\Filament\Resources\DocumentTemplates\Schemas\DocumentTemplateForm;
 use App\Filament\Resources\DocumentTemplates\Schemas\DocumentTemplateInfolist;
 use App\Filament\Resources\DocumentTemplates\Tables\DocumentTemplatesTable;
 use App\Models\DocumentTemplate;
+use App\Models\User;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -59,21 +60,21 @@ class DocumentTemplateResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->check();
+        return User::current() !== null;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasPermission('documents.manage') ?? false;
+        return User::current()?->hasPermission('documents.manage') ?? false;
     }
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()?->hasPermission('documents.manage') ?? false;
+        return User::current()?->hasPermission('documents.manage') ?? false;
     }
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()?->hasPermission('documents.manage') ?? false;
+        return User::current()?->hasPermission('documents.manage') ?? false;
     }
 }

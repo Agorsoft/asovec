@@ -10,6 +10,7 @@ use App\Filament\Resources\Quotas\Schemas\QuotaForm;
 use App\Filament\Resources\Quotas\Schemas\QuotaInfolist;
 use App\Filament\Resources\Quotas\Tables\QuotasTable;
 use App\Models\Quota;
+use App\Models\User;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -72,17 +73,17 @@ class QuotaResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasPermission('quotas.view') ?? false;
+        return User::current()?->hasPermission('quotas.view') ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasPermission('quotas.create') ?? false;
+        return User::current()?->hasPermission('quotas.create') ?? false;
     }
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()?->hasPermission('quotas.edit') ?? false;
+        return User::current()?->hasPermission('quotas.edit') ?? false;
     }
 
     public static function canDelete(Model $record): bool

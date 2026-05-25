@@ -14,6 +14,7 @@ use App\Filament\Resources\Members\Schemas\MemberForm;
 use App\Filament\Resources\Members\Schemas\MemberInfolist;
 use App\Filament\Resources\Members\Tables\MembersTable;
 use App\Models\Member;
+use App\Models\User;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -77,21 +78,21 @@ class MemberResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasPermission('members.view') ?? false;
+        return User::current()?->hasPermission('members.view') ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasPermission('members.create') ?? false;
+        return User::current()?->hasPermission('members.create') ?? false;
     }
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()?->hasPermission('members.edit') ?? false;
+        return User::current()?->hasPermission('members.edit') ?? false;
     }
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()?->is_admin ?? false;
+        return User::current()?->is_admin ?? false;
     }
 }

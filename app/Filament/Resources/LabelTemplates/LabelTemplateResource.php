@@ -10,6 +10,7 @@ use App\Filament\Resources\LabelTemplates\Schemas\LabelTemplateForm;
 use App\Filament\Resources\LabelTemplates\Schemas\LabelTemplateInfolist;
 use App\Filament\Resources\LabelTemplates\Tables\LabelTemplatesTable;
 use App\Models\LabelTemplate;
+use App\Models\User;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -65,21 +66,21 @@ class LabelTemplateResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->check();
+        return User::current() !== null;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasPermission('labels.manage') ?? false;
+        return User::current()?->hasPermission('labels.manage') ?? false;
     }
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()?->hasPermission('labels.manage') ?? false;
+        return User::current()?->hasPermission('labels.manage') ?? false;
     }
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()?->hasPermission('labels.manage') ?? false;
+        return User::current()?->hasPermission('labels.manage') ?? false;
     }
 }

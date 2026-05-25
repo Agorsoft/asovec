@@ -16,6 +16,7 @@ use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
 class RolePermissionsPage extends Page implements HasForms
@@ -111,8 +112,8 @@ class RolePermissionsPage extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->is_admin
-            || auth()->user()?->user_type?->value === 'Administrador'
+        return Auth::user()?->is_admin
+            || Auth::user()?->user_type?->value === 'Administrador'
             ?? false;
     }
 }

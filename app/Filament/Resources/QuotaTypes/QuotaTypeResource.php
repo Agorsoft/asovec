@@ -16,6 +16,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
 class QuotaTypeResource extends Resource
@@ -67,21 +68,21 @@ class QuotaTypeResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->is_admin ?? false;
+        return Auth::user()?->is_admin ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->is_admin ?? false;
+        return Auth::user()?->is_admin ?? false;
     }
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()?->is_admin ?? false;
+        return Auth::user()?->is_admin ?? false;
     }
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()?->is_admin && ! $record->quotas()->exists();
+        return Auth::user()?->is_admin && ! $record->quotas()->exists();
     }
 }

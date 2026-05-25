@@ -13,6 +13,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
 class UserResource extends Resource
@@ -52,8 +53,8 @@ class UserResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->is_admin
-            || auth()->user()?->user_type?->value === 'Administrador'
+        return Auth::user()?->is_admin
+            || Auth::user()?->user_type?->value === 'Administrador'
             ?? false;
     }
 }

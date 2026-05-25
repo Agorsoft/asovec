@@ -10,6 +10,7 @@ use App\Filament\Resources\Registrations\Schemas\RegistrationForm;
 use App\Filament\Resources\Registrations\Schemas\RegistrationInfolist;
 use App\Filament\Resources\Registrations\Tables\RegistrationsTable;
 use App\Models\Registration;
+use App\Models\User;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -67,21 +68,21 @@ class RegistrationResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasPermission('registrations.view') ?? false;
+        return User::current()?->hasPermission('registrations.view') ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasPermission('registrations.create') ?? false;
+        return User::current()?->hasPermission('registrations.create') ?? false;
     }
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()?->hasPermission('registrations.edit') ?? false;
+        return User::current()?->hasPermission('registrations.edit') ?? false;
     }
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()?->is_admin ?? false;
+        return User::current()?->is_admin ?? false;
     }
 }

@@ -16,6 +16,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
 class AssociationResource extends Resource
@@ -67,7 +68,7 @@ class AssociationResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->is_admin ?? false;
+        return Auth::user()?->is_admin ?? false;
     }
 
     public static function canView(Model $record): bool
@@ -77,12 +78,12 @@ class AssociationResource extends Resource
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->is_admin && ! Association::query()->exists();
+        return Auth::user()?->is_admin && ! Association::query()->exists();
     }
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()?->is_admin ?? false;
+        return Auth::user()?->is_admin ?? false;
     }
 
     public static function canDelete(Model $record): bool

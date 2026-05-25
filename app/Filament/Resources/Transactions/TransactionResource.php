@@ -11,6 +11,7 @@ use App\Filament\Resources\Transactions\Schemas\TransactionForm;
 use App\Filament\Resources\Transactions\Schemas\TransactionInfolist;
 use App\Filament\Resources\Transactions\Tables\TransactionsTable;
 use App\Models\Transaction;
+use App\Models\User;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -68,23 +69,23 @@ class TransactionResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasPermission('transactions.view') ?? false;
+        return User::current()?->hasPermission('transactions.view') ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasPermission('transactions.create') ?? false;
+        return User::current()?->hasPermission('transactions.create') ?? false;
     }
 
     public static function canEdit(Model $record): bool
     {
-        return (auth()->user()?->hasPermission('transactions.edit') ?? false)
+        return (User::current()?->hasPermission('transactions.edit') ?? false)
             && $record->source_type === TransactionSourceType::Manual;
     }
 
     public static function canDelete(Model $record): bool
     {
-        return (auth()->user()?->is_admin ?? false)
+        return (User::current()?->is_admin ?? false)
             && $record->source_type === TransactionSourceType::Manual;
     }
 }

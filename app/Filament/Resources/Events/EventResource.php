@@ -11,6 +11,7 @@ use App\Filament\Resources\Events\Schemas\EventForm;
 use App\Filament\Resources\Events\Schemas\EventInfolist;
 use App\Filament\Resources\Events\Tables\EventsTable;
 use App\Models\Event;
+use App\Models\User;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -68,22 +69,22 @@ class EventResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasPermission('events.view') ?? false;
+        return User::current()?->hasPermission('events.view') ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasPermission('events.create') ?? false;
+        return User::current()?->hasPermission('events.create') ?? false;
     }
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()?->hasPermission('events.edit') ?? false;
+        return User::current()?->hasPermission('events.edit') ?? false;
     }
 
     public static function canDelete(Model $record): bool
     {
-        return (auth()->user()?->is_admin ?? false)
+        return (User::current()?->is_admin ?? false)
             && ! $record->registrations()->exists();
     }
 }
