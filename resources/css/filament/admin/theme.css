@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ensure Tailwind scans Filament views and app code for utilities used in the panel */
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+/* Readonly entry style used by infolists/text entries */
+.readonly-entry {
+  @apply border border-zinc-200 rounded-md px-3 py-2 bg-zinc-50;
+}
+
+/* Override default section gap multiplier (reduce from *6 to *2) */
+.fi-sc.fi-sc-has-gap {
+  gap: calc(var(--spacing) * 2) !important;
+}
+
+/* Login */
+.fi-simple-main-ctn {
+  @apply bg-[url('/images/fondo.jpg')] bg-cover bg-center;
+}
+.fi-simple-main {
+  @apply rounded-none;
+
+  & .fi-simple-page {
+    @apply w-full;
+  }
+
+  & .fi-simple-header .fi-logo {
+    height:auto !important;
+  }
+}
+
+/* Sidebar */
+.fi-sidebar-nav {
+    @apply bg-gray-200 border-r border-gray-300;
+}
+
+/* Hide inline validation text under fields; keep red border/invalid state styling */
+[data-field-wrapper] [data-validation-error],
+.fi-fo-file-upload-error-message {
+  display: none !important;
+}
