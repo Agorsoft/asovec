@@ -18,6 +18,11 @@ class ViewDocumentTemplate extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('backToListing')
+                ->label('Volver al listado')
+                ->icon('heroicon-o-arrow-left')
+                ->url(fn () => EventResource::getUrl('index'))
+                ->color('gray'),
             Action::make('preview')
                 ->label('Vista previa')
                 ->icon(Heroicon::Eye)
