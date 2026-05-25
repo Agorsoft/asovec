@@ -36,18 +36,18 @@ class DocumentVariableRegistry
     private function registerAssociationVariables(): void
     {
         $vars = [
-            'association.name'                => __('documents.variables.association.name'),
-            'association.tax_id'              => __('documents.variables.association.tax_id'),
+            'association.name' => __('documents.variables.association.name'),
+            'association.tax_id' => __('documents.variables.association.tax_id'),
             'association.registration_entity' => __('documents.variables.association.registration_entity'),
             'association.registration_number' => __('documents.variables.association.registration_number'),
-            'association.email'               => __('documents.variables.association.email'),
-            'association.phone'               => __('documents.variables.association.phone'),
-            'association.address'             => __('documents.variables.association.address'),
-            'association.postal_code'         => __('documents.variables.association.postal_code'),
-            'association.city'                => __('documents.variables.association.city'),
-            'association.province'            => __('documents.variables.association.province'),
-            'association.country'             => __('documents.variables.association.country'),
-            'association.website'             => __('documents.variables.association.website'),
+            'association.email' => __('documents.variables.association.email'),
+            'association.phone' => __('documents.variables.association.phone'),
+            'association.address' => __('documents.variables.association.address'),
+            'association.postal_code' => __('documents.variables.association.postal_code'),
+            'association.city' => __('documents.variables.association.city'),
+            'association.province' => __('documents.variables.association.province'),
+            'association.country' => __('documents.variables.association.country'),
+            'association.website' => __('documents.variables.association.website'),
         ];
 
         foreach ($vars as $key => $label) {
@@ -60,16 +60,18 @@ class DocumentVariableRegistry
     {
         $vars = [
             'member.member_number' => __('documents.variables.member.member_number'),
-            'member.first_name'    => __('documents.variables.member.first_name'),
-            'member.last_name'     => __('documents.variables.member.last_name'),
-            'member.full_name'     => __('documents.variables.member.full_name'),
-            'member.dni'           => __('documents.variables.member.dni'),
-            'member.email'         => __('documents.variables.member.email'),
-            'member.phone'         => __('documents.variables.member.phone'),
-            'member.address'       => __('documents.variables.member.address'),
-            'member.city'          => __('documents.variables.member.city'),
-            'member.province'      => __('documents.variables.member.province'),
-            'member.postal_code'   => __('documents.variables.member.postal_code'),
+            'member.first_name' => __('documents.variables.member.first_name'),
+            'member.last_name' => __('documents.variables.member.last_name'),
+            'member.full_name' => __('documents.variables.member.full_name'),
+            'member.dni' => __('documents.variables.member.dni'),
+            'member.email' => __('documents.variables.member.email'),
+            'member.phone' => __('documents.variables.member.phone'),
+            'member.address' => __('documents.variables.member.address'),
+            'member.city' => __('documents.variables.member.city'),
+            'member.province' => __('documents.variables.member.province'),
+            'member.postal_code' => __('documents.variables.member.postal_code'),
+            'member.joined_at' => __('documents.variables.member.joined_at'),
+            'member.left_at' => __('documents.variables.member.left_at'),
         ];
 
         foreach ($vars as $key => $label) {
@@ -82,11 +84,13 @@ class DocumentVariableRegistry
                 }
 
                 return match ($field) {
-                    'full_name'  => mb_convert_case(trim($member->first_name . ' ' . $member->last_name), MB_CASE_TITLE),
+                    'full_name' => mb_convert_case(trim($member->first_name.' '.$member->last_name), MB_CASE_TITLE),
                     'first_name' => mb_convert_case((string) ($member->first_name ?? ''), MB_CASE_TITLE),
-                    'last_name'  => mb_convert_case((string) ($member->last_name ?? ''), MB_CASE_TITLE),
-                    'email'      => mb_strtolower((string) ($member->email ?? '')),
-                    default      => (string) ($member->{$field} ?? ''),
+                    'last_name' => mb_convert_case((string) ($member->last_name ?? ''), MB_CASE_TITLE),
+                    'email' => mb_strtolower((string) ($member->email ?? '')),
+                    'joined_at' => $member->joined_at ? Carbon::parse($member->joined_at)->format('d/m/Y') : '',
+                    'left_at' => $member->left_at ? Carbon::parse($member->left_at)->format('d/m/Y') : '',
+                    default => (string) ($member->{$field} ?? ''),
                 };
             });
         }
@@ -95,11 +99,11 @@ class DocumentVariableRegistry
     private function registerQuotaVariables(): void
     {
         $vars = [
-            'quota.amount'       => __('documents.variables.quota.amount'),
-            'quota.due_date'     => __('documents.variables.quota.due_date'),
+            'quota.amount' => __('documents.variables.quota.amount'),
+            'quota.due_date' => __('documents.variables.quota.due_date'),
             'quota.period_start' => __('documents.variables.quota.period_start'),
-            'quota.period_end'   => __('documents.variables.quota.period_end'),
-            'quota.status'       => __('documents.variables.quota.status'),
+            'quota.period_end' => __('documents.variables.quota.period_end'),
+            'quota.status' => __('documents.variables.quota.status'),
         ];
 
         foreach ($vars as $key => $label) {
@@ -112,11 +116,11 @@ class DocumentVariableRegistry
                 }
 
                 return match ($field) {
-                    'amount'       => number_format((float) $quota->amount, 2, ',', '.') . ' €',
-                    'due_date'     => $quota->due_date ? Carbon::parse($quota->due_date)->format('d/m/Y') : '',
+                    'amount' => number_format((float) $quota->amount, 2, ',', '.').' €',
+                    'due_date' => $quota->due_date ? Carbon::parse($quota->due_date)->format('d/m/Y') : '',
                     'period_start' => $quota->period_start ? Carbon::parse($quota->period_start)->format('d/m/Y') : '',
-                    'period_end'   => $quota->period_end ? Carbon::parse($quota->period_end)->format('d/m/Y') : '',
-                    default        => (string) ($quota->{$field} ?? ''),
+                    'period_end' => $quota->period_end ? Carbon::parse($quota->period_end)->format('d/m/Y') : '',
+                    default => (string) ($quota->{$field} ?? ''),
                 };
             });
         }
@@ -190,8 +194,8 @@ class DocumentVariableRegistry
     /**
      * Resuelve un mapa clave → valor para el contexto dado.
      *
-     * @param  array<string>                 $keys
-     * @param  array<string, mixed>          $context
+     * @param  array<string>  $keys
+     * @param  array<string, mixed>  $context
      * @return array<string, string>
      */
     public function resolve(array $keys, array $context): array
