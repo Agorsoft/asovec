@@ -21,7 +21,7 @@ class ViewDocumentTemplate extends ViewRecord
             Action::make('backToListing')
                 ->label('Volver al listado')
                 ->icon('heroicon-o-arrow-left')
-                ->url(fn () => EventResource::getUrl('index'))
+                ->url(fn () => DocumentTemplateResource::getUrl('index'))
                 ->color('gray'),
             Action::make('preview')
                 ->label('Vista previa')
