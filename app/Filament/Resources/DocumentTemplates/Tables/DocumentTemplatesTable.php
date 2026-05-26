@@ -29,7 +29,7 @@ class DocumentTemplatesTable
 
                 TextColumn::make('detected_variables')
                     ->label('Variables')
-                    ->state(fn ($record) => count($record->detected_variables ?? []) . ' variable(s)')
+                    ->state(fn ($record) => count($record->detected_variables ?? []).' variable(s)')
                     ->color('gray'),
 
                 TextColumn::make('created_at')
@@ -44,7 +44,7 @@ class DocumentTemplatesTable
                     ->options(DocumentType::class),
 
             ])
-            ->actions([
+            ->recordActions([
                 ViewAction::make()
                     ->label('Ver'),
                 EditAction::make()

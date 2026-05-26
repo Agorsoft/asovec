@@ -33,8 +33,17 @@ class InstallerController extends Controller
             'admin_password' => 'required|string|confirmed|min:8',
         ]);
 
+        // Generar APP_KEY si aún no existe (primera instalación).
+        if (empty(config('app.key'))) {
+            Artisan::call('key:generate', ['--force' => true]);
+        }
+
+        // Detectar APP_URL desde la petición actual.
+        $appUrl = $request->getSchemeAndHttpHost();
+
         // Sólo persistir temporalmente los datos de conexión y el flag de instalación.
         $this->setEnvironmentValue([
+            'APP_URL' => $appUrl,
             'DB_CONNECTION' => $data['DB_CONNECTION'],
             'DB_HOST' => $data['DB_HOST'],
             'DB_PORT' => $data['DB_PORT'],
@@ -65,6 +74,7 @@ class InstallerController extends Controller
 
         // Persist connection to .env
         $this->setEnvironmentValue([
+            'APP_URL' => $appUrl,
             'DB_CONNECTION' => $data['DB_CONNECTION'],
             'DB_HOST' => $data['DB_HOST'],
             'DB_PORT' => $data['DB_PORT'],
@@ -90,11 +100,15 @@ class InstallerController extends Controller
         // Run migrations sobre la conexión temporal
         Artisan::call('migrate', ['--force' => true, '--database' => 'temp_install']);
 
-        // Crear enlace simbólico public/storage → storage/app/public
-        try {
-            Artisan::call('storage:link');
-        } catch (\Throwable) {
-            // Ignorar si ya existe el enlace o el directorio
+        // Crear public/storage como directorio real (sin symlink).
+        // En hosting compartido (Hostinger, etc.) Apache no sigue symlinks, así que
+        // evitamos storage:link y escribimos directamente en public/storage/,
+        // que coincide con el root del disco 'public' en config/filesystems.php.
+        $storagePath = public_path('storage');
+        if (is_link($storagePath)) {
+            // Instalación previa usó storage:link; lo dejamos como está.
+        } elseif (! is_dir($storagePath)) {
+            mkdir($storagePath, 0755, true);
         }
 
         // Crear el usuario administrador utilizando la conexión por defecto
@@ -105,6 +119,7 @@ class InstallerController extends Controller
                 'email' => $data['admin_email'],
                 'password' => Hash::make($data['admin_password']),
                 'is_admin' => true,
+                'user_type' => 'Administrador',
             ]);
 
             // Marcar email verificado y hacer login

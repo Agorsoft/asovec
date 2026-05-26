@@ -72,8 +72,13 @@ class EditMember extends EditRecord
             $data['left_at'] = Carbon::now()->toDateString();
         }
 
-        // If trying to activate but no quota selected, revert to Pendiente and notify
-        if (Arr::get($data, 'status') === MemberStatus::Activo->value && empty(Arr::get($data, 'quota_id'))) {
+        // If trying to activate but no quota selected, revert to Pendiente and notify.
+        // Exception: if the member is already Activo with a paid quota, editing other
+        // fields must not force re-selection of the quota.
+        $alreadyActiveWithPaidQuota = $this->record->status === MemberStatus::Activo
+            && $this->record->hasCurrentPaidQuota();
+
+        if (Arr::get($data, 'status') === MemberStatus::Activo->value && empty(Arr::get($data, 'quota_id')) && ! $alreadyActiveWithPaidQuota) {
             $data['status'] = MemberStatus::Pendiente->value;
 
             $hasAvailableTypes = QuotaTypeResolver::hasAvailableTypes();
