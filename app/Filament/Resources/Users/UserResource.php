@@ -15,6 +15,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
@@ -61,6 +62,18 @@ class UserResource extends Resource
 
     public static function canViewAny(): bool
     {
+        return Auth::user()?->is_admin
+            || Auth::user()?->user_type?->value === 'Administrador'
+            ?? false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        // No se puede eliminar el único administrador del sistema.
+        if ($record->is_admin && User::where('is_admin', true)->count() <= 1) {
+            return false;
+        }
+
         return Auth::user()?->is_admin
             || Auth::user()?->user_type?->value === 'Administrador'
             ?? false;
