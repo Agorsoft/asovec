@@ -2,7 +2,6 @@
 
 namespace App\Services\Documents;
 
-use Illuminate\Support\Str;
 use ZipArchive;
 
 /**
@@ -35,9 +34,9 @@ class DocxTemplateParser
         $invalid = array_values(array_filter($found, fn (string $k) => ! in_array($k, $validKeys, true)));
 
         return [
-            'valid'   => $valid,
+            'valid' => $valid,
             'invalid' => $invalid,
-            'all'     => $found,
+            'all' => $found,
         ];
     }
 
@@ -46,7 +45,7 @@ class DocxTemplateParser
      */
     private function extractRawXml(string $filePath): string
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
 
         if ($zip->open($filePath) !== true) {
             throw new \RuntimeException("No se pudo abrir el archivo DOCX: {$filePath}");
@@ -101,7 +100,7 @@ class DocxTemplateParser
      */
     public function extractText(string $filePath): string
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
 
         if ($zip->open($filePath) !== true) {
             return '';

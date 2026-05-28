@@ -87,7 +87,7 @@ test('parsea cabeceras en español y delimitador tab para importar socios', func
 
     $page = new FirstMemberImport;
 
-    $parseCsv = \Closure::bind(
+    $parseCsv = Closure::bind(
         fn (string $filePath): array => $this->parseCsv($filePath),
         $page,
         FirstMemberImport::class,

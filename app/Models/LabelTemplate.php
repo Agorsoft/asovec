@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class LabelTemplate extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'name',
         'description',
@@ -54,7 +55,7 @@ class LabelTemplate extends Model
     public function getDisplayNameAttribute(): string
     {
         $brand = $this->brand
-            ? '[' . $this->brand . ($this->brand_code ? ' ' . $this->brand_code : '') . '] '
+            ? '['.$this->brand.($this->brand_code ? ' '.$this->brand_code : '').'] '
             : '';
 
         return "{$brand}{$this->name} — {$this->columns}×{$this->rows} ({$this->label_width_mm}×{$this->label_height_mm} mm)";

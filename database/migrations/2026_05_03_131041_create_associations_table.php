@@ -55,7 +55,19 @@ return new class extends Migration
             $table->string('bank_province')->nullable();
             $table->string('bank_country')->nullable()->default('España');
 
+            // Datos email
+            $table->boolean('use_email')->default(false);
+            $table->string('mail_mailer')->nullable();
+            $table->string('mail_host')->nullable();
+            $table->unsignedSmallInteger('mail_port')->nullable();
+            $table->string('mail_encryption')->nullable();
+            $table->string('mail_username')->nullable();
+            $table->text('mail_password')->nullable();
+            $table->string('mail_from_address')->nullable();
+            $table->string('mail_from_name')->nullable();
+
             $table->timestamp('installed_at')->nullable();
+            $table->json('role_permissions')->nullable();
             $table->timestamps();
         });
     }

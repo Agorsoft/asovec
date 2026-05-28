@@ -4,12 +4,14 @@ namespace App\Filament\Resources\Members\Schemas;
 
 use App\Enums\Gender;
 use App\Enums\MemberType;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class NonMemberForm
@@ -39,8 +41,26 @@ class NonMemberForm
                                 TextInput::make('postal_code')->label('C.P.')->columnSpan(2),
                                 TextInput::make('city')->label('Localidad')->columnSpan(4),
                                 TextInput::make('province')->label('Provincia')->columnSpan(3),
-                                TextInput::make('phone')->label('Teléfono')->tel()->columnSpan(3),
-                                TextInput::make('email')->label('Correo electrónico')->email()->columnSpan(6),
+                                TextInput::make('phone')->label('Teléfono')->tel()->live(onBlur: true)->columnSpan(3),
+                                TextInput::make('email')->label('Correo electrónico')->email()->live(onBlur: true)->columnSpan(6),
+                            ])->columns(12)->columnSpanFull()->extraAttributes(['class' => 'mt-4']),
+                        Section::make('Comunicaciones')
+                            ->schema([
+                                Checkbox::make('whatsapp_opt_in')
+                                    ->label('WhatsApp')
+                                    ->disabled(fn (Get $get): bool => ! filled($get('phone')))
+                                    ->helperText(fn (Get $get): ?string => filled($get('phone')) ? null : 'Requiere teléfono')
+                                    ->columnSpan(4),
+                                Checkbox::make('sms_opt_in')
+                                    ->label('Mensaje SMS')
+                                    ->disabled(fn (Get $get): bool => ! filled($get('phone')))
+                                    ->helperText(fn (Get $get): ?string => filled($get('phone')) ? null : 'Requiere teléfono')
+                                    ->columnSpan(4),
+                                Checkbox::make('email_opt_in')
+                                    ->label('Correo electrónico')
+                                    ->disabled(fn (Get $get): bool => ! filled($get('email')))
+                                    ->helperText(fn (Get $get): ?string => filled($get('email')) ? null : 'Requiere correo electrónico')
+                                    ->columnSpan(4),
                             ])->columns(12)->columnSpanFull()->extraAttributes(['class' => 'mt-4']),
                         Textarea::make('notes')->label('Notas')->columnSpanFull()->extraAttributes(['class' => 'mt-4']),
                     ])->columns(6)->columnSpanFull(),

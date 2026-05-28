@@ -3,9 +3,13 @@
 namespace App\Filament\Resources\Quotas\Tables;
 
 use App\Enums\PaymentMethod;
+use App\Enums\PdfEngine;
 use App\Enums\QuotaStatus;
+use App\Mail\QuotaMemberReceiptMail;
+use App\Mail\QuotaPendingNoticeMail;
 use App\Models\Association;
 use App\Models\Quota;
+use App\Services\PdfService;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
@@ -18,6 +22,8 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Mail;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class QuotasTable
@@ -179,7 +185,7 @@ class QuotasTable
             ->recordActions([
                 ActionGroup::make([
                     Action::make('markAsPaid')
-                        ->label('Marcar pagada')
+                        ->label('Pagar')
                         ->icon('heroicon-o-check-circle')
                         ->color('success')
                         ->visible(fn (Quota $record): bool => $record->status !== QuotaStatus::Pagada)
@@ -267,6 +273,7 @@ class QuotasTable
                         ->label('Recibo completo')
                         ->icon('heroicon-o-document-duplicate')
                         ->color('gray')
+                        ->visible(fn (Quota $record): bool => ! in_array($record->status, [QuotaStatus::Cancelada, QuotaStatus::Pendiente], true))
                         ->url(fn (Quota $record) => route('quotas.receipt.show', [
                             'quota' => $record->id,
                             'type' => 'full',
@@ -276,6 +283,7 @@ class QuotasTable
                         ->label('Recibo de asociación')
                         ->icon('heroicon-o-building-office-2')
                         ->color('gray')
+                        ->visible(fn (Quota $record): bool => ! in_array($record->status, [QuotaStatus::Cancelada, QuotaStatus::Pendiente], true))
                         ->url(fn (Quota $record) => route('quotas.receipt.show', [
                             'quota' => $record->id,
                             'type' => 'association',
@@ -285,11 +293,93 @@ class QuotasTable
                         ->label('Recibo de socio')
                         ->icon('heroicon-o-user')
                         ->color('gray')
+                        ->visible(fn (Quota $record): bool => ! in_array($record->status, [QuotaStatus::Cancelada, QuotaStatus::Pendiente], true))
                         ->url(fn (Quota $record) => route('quotas.receipt.show', [
                             'quota' => $record->id,
                             'type' => 'member',
                         ]))
                         ->openUrlInNewTab(),
+                    Action::make('printPendingNotice')
+                        ->label('Aviso de cuota')
+                        ->icon('heroicon-o-bell-alert')
+                        ->color('warning')
+                        ->visible(fn (Quota $record): bool => in_array($record->status, [QuotaStatus::Pendiente, QuotaStatus::Vencida], true))
+                        ->url(fn (Quota $record): string => route('quotas.receipt.show', [
+                            'quota' => $record->id,
+                            'type' => 'pending_notice',
+                        ]))
+                        ->openUrlInNewTab(),
+                    Action::make('sendEmail')
+                        ->label('Enviar')
+                        ->icon('heroicon-o-envelope')
+                        ->color('info')
+                        ->visible(function (Quota $record): bool {
+                            static $useEmail = null;
+                            if ($useEmail === null) {
+                                $useEmail = (bool) Association::query()->value('use_email');
+                            }
+
+                            return $useEmail
+                                && filled($record->member?->email)
+                                && (bool) ($record->member?->email_opt_in)
+                                && in_array($record->status, [QuotaStatus::Pendiente, QuotaStatus::Vencida, QuotaStatus::Pagada], true);
+                        })
+                        ->requiresConfirmation()
+                        ->modalHeading(fn (?Quota $record): string => $record
+                            ? 'Enviar por email a '.$record->member?->email
+                            : 'Enviar por email')
+                        ->modalDescription(fn (?Quota $record): string => $record && in_array($record->status, [QuotaStatus::Pendiente, QuotaStatus::Vencida], true)
+                            ? 'Se enviará el aviso de cuota pendiente al socio.'
+                            : 'Se enviará la copia del recibo al socio.')
+                        ->action(function (Quota $record): void {
+                            $association = Association::firstOrFail();
+
+                            Config::set('mail.mailers.assoc_dynamic', [
+                                'transport' => $association->mail_mailer ?? 'smtp',
+                                'host' => $association->mail_host,
+                                'port' => $association->mail_port,
+                                'encryption' => $association->mail_encryption,
+                                'username' => $association->mail_username,
+                                'password' => $association->mail_password,
+                                'from' => [
+                                    'address' => (string) ($association->mail_from_address ?? $association->email),
+                                    'name' => (string) ($association->mail_from_name ?? $association->name),
+                                ],
+                            ]);
+                            Mail::purge('assoc_dynamic');
+
+                            $pdfService = app(PdfService::class);
+                            $memberEmail = (string) $record->member?->email;
+                            $memberName = $record->member?->full_name ?? '-';
+
+                            if (in_array($record->status, [QuotaStatus::Pendiente, QuotaStatus::Vencida], true)) {
+                                $noticeDate = now()->format('d/m/Y');
+                                $pdfBytes = $pdfService->renderView('documents.quotas.QuotaPendingNoticeA5', [
+                                    'quota' => $record,
+                                    'association' => $association,
+                                    'noticeDate' => $noticeDate,
+                                ], PdfEngine::Dompdf);
+
+                                $mailable = new QuotaPendingNoticeMail($record, $pdfBytes, $noticeDate);
+                            } else {
+                                $pdfBytes = $pdfService->renderView('documents.quotas.QuotaReceiptA5', [
+                                    'quota' => $record,
+                                    'association' => $association,
+                                    'receiptType' => 'member',
+                                ], PdfEngine::Dompdf);
+
+                                $mailable = new QuotaMemberReceiptMail($record, $pdfBytes);
+                            }
+
+                            $mailer = Mail::mailer('assoc_dynamic');
+                            $mailer->to($memberEmail, $memberName)->send($mailable);
+
+                            Notification::make()
+                                ->success()
+                                ->title('Email enviado correctamente')
+                                ->body('Se ha enviado el email a '.$memberEmail)
+                                ->send();
+                        }),
                 ]),
             ]);
     }

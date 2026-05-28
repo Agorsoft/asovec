@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Members\Schemas;
 
+use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -34,6 +35,12 @@ class NonMemberInfolist
                                 TextEntry::make('phone')->label('Teléfono')->extraAttributes(['class' => 'readonly-entry'])->default('Sin datos')->columnSpan(3),
                                 TextEntry::make('email')->label('Correo electrónico')->extraAttributes(['class' => 'readonly-entry'])->default('Sin datos')->columnSpan(6),
                             ])->columns(12)->columnSpanFull()->extraAttributes(['class' => 'my-4']),
+                        Section::make('Comunicaciones')
+                            ->schema([
+                                IconEntry::make('whatsapp_opt_in')->label('WhatsApp')->boolean()->columnSpan(4),
+                                IconEntry::make('sms_opt_in')->label('Mensaje SMS')->boolean()->columnSpan(4),
+                                IconEntry::make('email_opt_in')->label('Correo electrónico')->boolean()->inlineLabel(true)->columnSpan(4),
+                            ])->columns(12)->columnSpanFull()->extraAttributes(['class' => 'mt-4']),
                         TextEntry::make('notes')->label('Notas')->extraAttributes(['class' => 'readonly-entry'])->default('Sin datos')->columnSpanFull(),
                     ])->columns(6)->columnSpanFull(),
             ]);

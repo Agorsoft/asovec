@@ -2,11 +2,9 @@
 
 namespace App\Filament\Pages;
 
-use App\DataTransferObjects\Labels\PrintJobConfig;
 use App\Enums\LabelField;
 use App\Models\LabelTemplate;
 use App\Models\Member;
-use App\Services\Labels\LabelPdfGenerator;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
@@ -20,7 +18,6 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Support\Collection;
 use UnitEnum;
 
 class PrintLabelsPage extends Page implements HasForms
@@ -29,9 +26,13 @@ class PrintLabelsPage extends Page implements HasForms
 
     // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPrinter;
     protected static ?string $navigationLabel = 'Imprimir etiquetas';
+
     protected static ?string $title = 'Imprimir etiquetas postales';
+
     protected static UnitEnum|string|null $navigationGroup = 'Reportes';
+
     protected static ?int $navigationSort = 30;
+
     protected string $view = 'filament.pages.print-labels';
 
     public ?array $data = [];
@@ -75,7 +76,7 @@ class PrintLabelsPage extends Page implements HasForms
                                     ->orderBy('first_name')
                                     ->get()
                                     ->mapWithKeys(fn (Member $m) => [
-                                        $m->id => $m->member_number_formatted . ' — ' . $m->full_name,
+                                        $m->id => $m->member_number_formatted.' — '.$m->full_name,
                                     ])
                             )
                             ->searchable()
@@ -125,7 +126,7 @@ class PrintLabelsPage extends Page implements HasForms
                     if ($url === null) {
                         return;
                     }
-                    $this->js("window.open('" . addslashes($url) . "', '_blank')");
+                    $this->js("window.open('".addslashes($url)."', '_blank')");
                 }),
 
             Action::make('downloadPdf')
@@ -137,7 +138,7 @@ class PrintLabelsPage extends Page implements HasForms
                     if ($url === null) {
                         return;
                     }
-                    $this->js("window.location.href = '" . addslashes($url) . "'");
+                    $this->js("window.location.href = '".addslashes($url)."'");
                 }),
         ];
     }

@@ -84,6 +84,9 @@ class CreateMember extends CreateRecord
 
         $state = $this->form->getState();
 
+        // Ask about printing the consent sheet before any early returns from quota logic.
+        $this->maybeNotifyPrintConsent();
+
         if (($state['status'] ?? null) === MemberStatus::Activo->value && ! empty($state['quota_id'])) {
             $quotaType = QuotaTypeResolver::resolve((int) $state['quota_id']);
 
@@ -132,5 +135,56 @@ class CreateMember extends CreateRecord
                 'payment_method' => $paymentMethodValue,
             ]);
         }
+
+        if (($state['status'] ?? null) === MemberStatus::Pendiente->value && ! empty($state['quota_id'])) {
+            $quotaType = QuotaTypeResolver::resolve((int) $state['quota_id']);
+
+            if (! $quotaType) {
+                return;
+            }
+
+            $periodData = QuotaPeriodService::forMember($this->record, $quotaType);
+
+            if (Quota::existsForMemberPeriod(
+                $this->record->id,
+                $periodData['period_start'],
+                $periodData['period_end'],
+            )) {
+                return;
+            }
+
+            Quota::query()->create([
+                'member_id' => $this->record->id,
+                'quota_type_id' => $quotaType->id,
+                'period_start' => $periodData['period_start'],
+                'period_end' => $periodData['period_end'],
+                'due_date' => $periodData['due_date'],
+                'amount' => QuotaPeriodService::defaultAmount($quotaType) ?? 0,
+                'status' => QuotaStatus::Pendiente,
+            ]);
+        }
+    }
+
+    private function maybeNotifyPrintConsent(): void
+    {
+        if (! $this->record->whatsapp_opt_in && ! $this->record->sms_opt_in && ! $this->record->email_opt_in) {
+            return;
+        }
+
+        Notification::make()
+            ->info()
+            ->title('¿Imprimir hoja de consentimiento?')
+            ->body('El socio tiene preferencias de comunicación marcadas. ¿Deseas imprimir la hoja de consentimiento para que la firme?')
+            ->persistent()
+            ->actions([
+                Action::make('print')
+                    ->label('Imprimir')
+                    ->button()
+                    ->url(route('members.consent.print', $this->record), shouldOpenInNewTab: true),
+                Action::make('skip')
+                    ->label('Omitir')
+                    ->close(),
+            ])
+            ->send();
     }
 }

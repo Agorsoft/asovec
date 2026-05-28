@@ -618,9 +618,8 @@ test('cancelar una cuota futura pagada no afecta al estado actual del socio con 
 test('una cuota pendiente vencida se informa como vencida', function () {
     $quota = Quota::query()->make([
         'status' => QuotaStatus::Pendiente->value,
-        // Según la nueva regla, una cuota pendiente con due_date en el futuro
-        // se considera "Vencida" para efectos informativos.
-        'due_date' => now()->addDay()->toDateString(),
+        // Una cuota pendiente con due_date en el pasado se considera "Vencida".
+        'due_date' => now()->subDay()->toDateString(),
     ]);
 
     expect($quota->effectiveStatus())->toEqual(QuotaStatus::Vencida);

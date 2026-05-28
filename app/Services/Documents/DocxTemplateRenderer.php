@@ -25,7 +25,7 @@ class DocxTemplateRenderer
      */
     public function render(DocumentTemplate $template, array $context): string
     {
-        $filePath = storage_path('app/private/' . $template->file_path);
+        $filePath = storage_path('app/private/'.$template->file_path);
 
         if (! file_exists($filePath)) {
             throw new \RuntimeException("Plantilla no encontrada: {$filePath}");
@@ -65,8 +65,8 @@ class DocxTemplateRenderer
     {
         $bytes = $this->render($template, $context);
 
-        $relativePath = 'documents/generated/' . $filename;
-        $absolutePath = storage_path('app/private/' . $relativePath);
+        $relativePath = 'documents/generated/'.$filename;
+        $absolutePath = storage_path('app/private/'.$relativePath);
 
         if (! is_dir(dirname($absolutePath))) {
             mkdir(dirname($absolutePath), 0755, true);

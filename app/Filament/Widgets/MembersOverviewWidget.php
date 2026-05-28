@@ -8,8 +8,6 @@ use App\Filament\Resources\Members\MemberResource;
 use App\Models\Member;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Schema;
 
 class MembersOverviewWidget extends BaseWidget
 {
@@ -32,19 +30,19 @@ class MembersOverviewWidget extends BaseWidget
             Stat::make('Socios activos', $activos)
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
-                ->url($indexUrl . '?tableFilters[status][value]=Activo')
+                ->url($indexUrl.'?tableFilters[status][value]=Activo')
                 ->extraAttributes(['class' => 'border border-success-200 dark:border-success-800'])
                 ->columnSpan(1),
             Stat::make('Socios pendientes', $pendientes)
                 ->icon('heroicon-o-clock')
                 ->color('warning')
-                ->url($indexUrl . '?tableFilters[status][value]=Pendiente')
+                ->url($indexUrl.'?tableFilters[status][value]=Pendiente')
                 ->extraAttributes(['class' => 'border border-warning-200 dark:border-warning-800'])
                 ->columnSpan(1),
             Stat::make('Bajas', $bajas)
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
-                ->url($indexUrl . '?tableFilters[status][value]=Baja')
+                ->url($indexUrl.'?tableFilters[status][value]=Baja')
                 ->extraAttributes(['class' => 'border border-danger-200 dark:border-danger-800'])
                 ->columnSpan(1),
             Stat::make('No socios', $noSocios)

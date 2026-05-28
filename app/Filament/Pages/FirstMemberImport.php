@@ -70,7 +70,7 @@ class FirstMemberImport extends Page implements HasForms
 
     private function getImportInstructions(): string
     {
-        return <<<HTML
+        return <<<'HTML'
             <div class="space-y-4 text-sm">
                 <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
                     <p class="font-semibold text-amber-900">⚠️ Requisito Obligatorio</p>

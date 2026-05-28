@@ -106,6 +106,47 @@ test('si no hay tipos de cuota, al activar el socio se guarda como pendiente', f
         ->and(Quota::query()->count())->toBe(0);
 });
 
+test('al crear socio pendiente con tipo de cuota se crea cuota pendiente', function () {
+    $this->actingAs(User::factory()->create(['is_admin' => true]));
+
+    Association::factory()->create([
+        'payment_methods' => [PaymentMethod::Transferencia],
+    ]);
+
+    $quotaType = QuotaType::query()->create([
+        'name' => 'Cuota anual',
+        'period_type' => 'Anual',
+        'period_reference_date' => now()->toDateString(),
+        'default_amount' => 30.0,
+        'grace_days' => 15,
+        'align_period_start' => true,
+    ]);
+
+    Livewire::test(CreateMember::class)
+        ->fillForm([
+            'first_name' => 'Laura',
+            'last_name' => 'García',
+            'payment_method_id' => PaymentMethod::Transferencia->value,
+            'status' => MemberStatus::Pendiente->value,
+            'quota_id' => $quotaType->id,
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $member = Member::query()->first();
+    expect($member)->not()->toBeNull()
+        ->and($member->status)->toEqual(MemberStatus::Pendiente)
+        ->and($member->member_number)->toBeNull();
+
+    $quota = Quota::query()->where('member_id', $member->id)->first();
+    expect($quota)->not()->toBeNull()
+        ->and($quota->status)->toEqual(QuotaStatus::Pendiente)
+        ->and($quota->due_date)->not()->toBeNull()
+        ->and((float) $quota->amount)->toBe(30.0)
+        ->and($quota->paid_at)->toBeNull()
+        ->and($quota->transactions()->exists())->toBeFalse();
+});
+
 test('al activar con tipo de cuota seleccionado se crea la cuota para el socio', function () {
     $this->actingAs(User::factory()->create(['is_admin' => true]));
 

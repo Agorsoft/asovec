@@ -6,13 +6,15 @@ use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
-use UnitEnum;
 
 class HelpPage extends Page
 {
     protected static ?string $navigationLabel = 'Ayuda';
+
     protected static ?string $title = 'Manual de usuario';
+
     protected static string|BackedEnum|null $navigationIcon = null;
+
     protected static bool $shouldRegisterNavigation = false;
 
     protected string $view = 'filament.pages.help';

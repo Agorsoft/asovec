@@ -42,7 +42,7 @@ class DocumentTemplateInfolist
                         TextEntry::make('detected_variables')
                             ->label('Variables reconocidas')
                             ->state(fn ($record): string => is_array($record->detected_variables) && count($record->detected_variables) > 0
-                                ? implode('   ', array_map(fn (string $k) => '${' . $k . '}', $record->detected_variables))
+                                ? implode('   ', array_map(fn (string $k) => '${'.$k.'}', $record->detected_variables))
                                 : '—')
                             ->columnSpanFull(),
                     ])

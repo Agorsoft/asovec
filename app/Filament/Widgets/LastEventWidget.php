@@ -14,7 +14,7 @@ class LastEventWidget extends Widget
 
     protected string $view = 'filament.widgets.last-event-widget';
 
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
     protected static bool $isLazy = false;
 

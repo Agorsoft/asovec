@@ -11,6 +11,7 @@ use App\Models\Association;
 use App\Models\Event;
 use App\Models\Member;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
@@ -500,14 +501,34 @@ class RegistrationForm
                     TextInput::make('phone')
                         ->label('Teléfono')
                         ->maxLength(30)
+                        ->live(onBlur: true)
                         ->columnSpan(2),
                     TextInput::make('email')
                         ->label('Email')
                         ->email()
                         ->maxLength(255)
+                        ->live(onBlur: true)
                         ->columnSpan(3),
                 ])
                 ->columns(7),
+            Section::make('Comunicaciones')
+                ->schema([
+                    Checkbox::make('whatsapp_opt_in')
+                        ->label('WhatsApp')
+                        ->disabled(fn (Get $get): bool => ! filled($get('phone')))
+                        ->helperText(fn (Get $get): ?string => filled($get('phone')) ? null : 'Requiere teléfono')
+                        ->columnSpan(1),
+                    Checkbox::make('sms_opt_in')
+                        ->label('Mensaje SMS')
+                        ->disabled(fn (Get $get): bool => ! filled($get('phone')))
+                        ->helperText(fn (Get $get): ?string => filled($get('phone')) ? null : 'Requiere teléfono')
+                        ->columnSpan(1),
+                    Checkbox::make('email_opt_in')
+                        ->label('Correo electrónico')
+                        ->disabled(fn (Get $get): bool => ! filled($get('email')))
+                        ->helperText(fn (Get $get): ?string => filled($get('email')) ? null : 'Requiere correo electrónico')
+                        ->columnSpan(1),
+                ])->columns(3)->columnSpanFull(),
             Hidden::make('member_type')
                 ->default(MemberType::NoSocio->value),
         ];
@@ -527,9 +548,30 @@ class RegistrationForm
             'province' => filled($data['province'] ?? null) ? (string) $data['province'] : null,
             'postal_code' => filled($data['postal_code'] ?? null) ? (string) $data['postal_code'] : null,
             'gender' => $data['gender'] ?? Gender::NoDefinido->value,
+            'whatsapp_opt_in' => $data['whatsapp_opt_in'] ?? false,
+            'sms_opt_in' => $data['sms_opt_in'] ?? false,
+            'email_opt_in' => $data['email_opt_in'] ?? false,
             'member_type' => MemberType::NoSocio->value,
             'status' => MemberStatus::Pendiente->value,
         ]);
+
+        if ($member->whatsapp_opt_in || $member->sms_opt_in || $member->email_opt_in) {
+            Notification::make()
+                ->info()
+                ->title('¿Imprimir hoja de consentimiento?')
+                ->body('El interesado tiene preferencias de comunicación marcadas. ¿Deseas imprimir la hoja de consentimiento para que la firme?')
+                ->persistent()
+                ->actions([
+                    Action::make('print')
+                        ->label('Imprimir')
+                        ->button()
+                        ->url(route('members.consent.print', $member->id), shouldOpenInNewTab: true),
+                    Action::make('skip')
+                        ->label('Omitir')
+                        ->close(),
+                ])
+                ->send();
+        }
 
         return $member->id;
     }

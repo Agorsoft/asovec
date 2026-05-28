@@ -25,13 +25,13 @@ class QuotaType extends Model
     ];
 
     protected $casts = [
-        'period_type'           => PaymentPeriod::class,
+        'period_type' => PaymentPeriod::class,
         'period_reference_date' => 'date',
-        'default_amount'        => 'decimal:2',
-        'align_period_start'    => 'boolean',
-        'grace_days'            => 'integer',
-        'refund_days'           => 'integer',
-        'sort_order'            => 'integer',
+        'default_amount' => 'decimal:2',
+        'align_period_start' => 'boolean',
+        'grace_days' => 'integer',
+        'refund_days' => 'integer',
+        'sort_order' => 'integer',
     ];
 
     // Relationships

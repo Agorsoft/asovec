@@ -3,15 +3,15 @@
 namespace App\Filament\Resources\Events\RelationManagers;
 
 use App\Enums\RegistrationStatus;
+use App\Enums\RegistrationType;
+use App\Models\Registration;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
-use Filament\Resources\RelationManagers\RelationManager;
-use App\Enums\RegistrationType;
-use App\Models\Registration;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;

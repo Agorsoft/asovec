@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\CheckInstallation;
+use App\Http\Middleware\SyncDailyStatuses;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -15,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Prepend installer check middleware so requests are redirected
         // al instalador cuando APP_INSTALLED=false en .env
         $middleware->prepend([CheckInstallation::class]);
+        $middleware->appendToGroup('web', [SyncDailyStatuses::class]);
     })
     // ->withMiddleware(function (Middleware $middleware): void {
     //     $middleware->redirectUsersTo(fn (): string => route('filament.admin.pages.dashboard'));

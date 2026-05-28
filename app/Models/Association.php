@@ -43,6 +43,15 @@ use Illuminate\Support\Facades\DB;
     'bank_country',
     'installed_at',
     'role_permissions',
+    'use_email',
+    'mail_mailer',
+    'mail_host',
+    'mail_port',
+    'mail_encryption',
+    'mail_username',
+    'mail_password',
+    'mail_from_address',
+    'mail_from_name',
 ])]
 class Association extends Model
 {
@@ -189,6 +198,9 @@ class Association extends Model
             'last_receipt_number' => 'integer',
             'installed_at' => 'datetime',
             'role_permissions' => 'array',
+            'use_email' => 'boolean',
+            'mail_port' => 'integer',
+            'mail_password' => 'encrypted',
         ];
     }
 }

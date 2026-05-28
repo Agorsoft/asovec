@@ -51,6 +51,9 @@ class Member extends Model
         'status',
         'joined_at',
         'left_at',
+        'whatsapp_opt_in',
+        'sms_opt_in',
+        'email_opt_in',
         'notes',
     ];
 
@@ -65,6 +68,9 @@ class Member extends Model
         'sepa_mandate_signed_at' => 'date',
         'sepa_mandate_status' => SepaMandateStatus::class,
         'sepa_sequence_type' => SepaSequenceType::class,
+        'whatsapp_opt_in' => 'boolean',
+        'sms_opt_in' => 'boolean',
+        'email_opt_in' => 'boolean',
     ];
 
     public function isNoSocio(): bool

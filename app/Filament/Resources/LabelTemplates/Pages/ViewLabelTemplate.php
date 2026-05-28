@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\LabelTemplates\Pages;
 
 use App\Filament\Resources\LabelTemplates\LabelTemplateResource;
-use Filament\Actions\EditAction;
 use Filament\Actions\Action;
+use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewLabelTemplate extends ViewRecord

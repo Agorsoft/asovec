@@ -5,7 +5,6 @@ namespace App\Filament\Resources\QuotaTypes\Pages;
 use App\Filament\Resources\QuotaTypes\QuotaTypeResource;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
-use Filament\Actions\ViewAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditQuotaType extends EditRecord

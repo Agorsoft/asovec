@@ -24,7 +24,7 @@ final class LabelGeometryCalculator
     /**
      * Calcula la posición de una etiqueta dado su índice global (0-based).
      *
-     * @param int $globalIndex Índice global = startOffset + memberIndex
+     * @param  int  $globalIndex  Índice global = startOffset + memberIndex
      */
     public function position(int $globalIndex): LabelPosition
     {
@@ -54,7 +54,7 @@ final class LabelGeometryCalculator
     /**
      * Genera todas las posiciones para los índices dados.
      *
-     * @param  int[] $globalIndexes
+     * @param  int[]  $globalIndexes
      * @return LabelPosition[]
      */
     public function positions(array $globalIndexes): array

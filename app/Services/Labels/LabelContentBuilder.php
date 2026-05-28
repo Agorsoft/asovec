@@ -12,8 +12,8 @@ use App\Models\Member;
 final class LabelContentBuilder
 {
     /**
-     * @param  string[] $fieldValues  Valores de LabelField::value seleccionados
-     * @return string[]               Líneas no vacías en orden canónico
+     * @param  string[]  $fieldValues  Valores de LabelField::value seleccionados
+     * @return string[] Líneas no vacías en orden canónico
      */
     public function buildLines(Member $member, array $fieldValues): array
     {
@@ -39,7 +39,7 @@ final class LabelContentBuilder
     {
         return match ($field) {
             LabelField::MemberNumber => $member->member_number
-                ? 'Nº ' . $member->member_number_formatted
+                ? 'Nº '.$member->member_number_formatted
                 : '',
             LabelField::FullName => trim($member->full_name),
             LabelField::Address => trim((string) $member->address),
@@ -58,6 +58,6 @@ final class LabelContentBuilder
             return "{$cp} - {$city}";
         }
 
-        return $cp . $city;
+        return $cp.$city;
     }
 }

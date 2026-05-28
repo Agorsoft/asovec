@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\LabelTemplate;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\LabelTemplate>
+ * @extends Factory<LabelTemplate>
  */
 class LabelTemplateFactory extends Factory
 {

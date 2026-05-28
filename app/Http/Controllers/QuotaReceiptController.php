@@ -20,8 +20,21 @@ class QuotaReceiptController extends Controller
 
         $receiptType = (string) $request->query('type', 'full');
 
-        if (! in_array($receiptType, ['full', 'association', 'member', 'refund', 'refundA5', 'refund_association', 'refund_member'], true)) {
+        if (! in_array($receiptType, ['full', 'association', 'member', 'refund', 'refundA5', 'refund_association', 'refund_member', 'pending_notice'], true)) {
             $receiptType = 'full';
+        }
+
+        if ($receiptType === 'pending_notice') {
+            $noticeDate = now()->format('d/m/Y');
+            $filename = sprintf('aviso_cuota_%s_%s.pdf', $quota->id, now()->format('Y-m-d_His'));
+
+            $rawPdf = $this->pdfService->renderView('documents.quotas.QuotaPendingNoticeA5', [
+                'quota' => $quota,
+                'association' => $association,
+                'noticeDate' => $noticeDate,
+            ], PdfEngine::Dompdf);
+
+            return $this->pdfService->inlineResponse($rawPdf, $filename);
         }
 
         $isRefund = str_starts_with($receiptType, 'refund');

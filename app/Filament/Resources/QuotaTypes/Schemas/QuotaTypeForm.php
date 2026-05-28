@@ -54,13 +54,13 @@ class QuotaTypeForm
                             ->minValue(0)
                             ->required()
                             ->columnSpan(1),
-                           TextInput::make('refund_days')
-                               ->label('Días de devolución')
-                               ->numeric()
-                               ->default(0)
-                               ->minValue(0)
-                               ->required()
-                               ->columnSpan(1),
+                        TextInput::make('refund_days')
+                            ->label('Días de devolución')
+                            ->numeric()
+                            ->default(0)
+                            ->minValue(0)
+                            ->required()
+                            ->columnSpan(1),
                         TextInput::make('sort_order')
                             ->label('Orden')
                             ->numeric()

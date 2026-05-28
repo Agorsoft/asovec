@@ -41,7 +41,7 @@ class GenerateDocumentAction extends Action
                         fn () => Member::orderBy('last_name')
                             ->orderBy('first_name')
                             ->get()
-                            ->mapWithKeys(fn (Member $m) => [$m->id => $m->last_name . ', ' . $m->first_name])
+                            ->mapWithKeys(fn (Member $m) => [$m->id => $m->last_name.', '.$m->first_name])
                             ->toArray()
                     )
                     ->helperText('Selecciona el socio para el que se generará el documento.'),
@@ -59,8 +59,8 @@ class GenerateDocumentAction extends Action
                             ->mapWithKeys(fn (Quota $q): array => [
                                 $q->id => implode(' — ', array_filter([
                                     $q->quotaType?->name,
-                                    $q->period_start?->format('d/m/Y') . ' – ' . $q->period_end?->format('d/m/Y'),
-                                    number_format((float) $q->amount, 2, ',', '.') . ' €',
+                                    $q->period_start?->format('d/m/Y').' – '.$q->period_end?->format('d/m/Y'),
+                                    number_format((float) $q->amount, 2, ',', '.').' €',
                                     $q->status?->label(),
                                 ])),
                             ])
@@ -83,14 +83,14 @@ class GenerateDocumentAction extends Action
                 $renderer = app(DocxTemplateRenderer::class);
 
                 $generation = DocumentGeneration::create([
-                    'template_id'  => $record->id,
+                    'template_id' => $record->id,
                     'generated_by' => Auth::id(),
-                    'member_id'    => $member->id,
-                    'status'       => 'completed',
+                    'member_id' => $member->id,
+                    'status' => 'completed',
                 ]);
 
                 try {
-                    $filename = Str::slug($record->name) . '_' . Str::slug($member->last_name . '_' . $member->first_name) . '_' . Carbon::now()->format('Ymd_His') . '.docx';
+                    $filename = Str::slug($record->name).'_'.Str::slug($member->last_name.'_'.$member->first_name).'_'.Carbon::now()->format('Ymd_His').'.docx';
                     $bytes = $renderer->render($record, $context);
 
                     $generation->update(['output_path' => null]);
@@ -101,13 +101,13 @@ class GenerateDocumentAction extends Action
                         ->send();
 
                     return response()->streamDownload(
-                        fn () => print($bytes),
+                        fn () => print ($bytes),
                         $filename,
                         ['Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
                     );
                 } catch (\Throwable $e) {
                     $generation->update([
-                        'status'        => 'failed',
+                        'status' => 'failed',
                         'error_message' => $e->getMessage(),
                     ]);
 

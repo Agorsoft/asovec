@@ -14,7 +14,7 @@ enum DocumentGenerationStatus: string implements HasColor, HasLabel
     {
         return match ($this) {
             self::Completed => 'Completado',
-            self::Failed    => 'Error',
+            self::Failed => 'Error',
         };
     }
 
@@ -22,7 +22,7 @@ enum DocumentGenerationStatus: string implements HasColor, HasLabel
     {
         return match ($this) {
             self::Completed => 'success',
-            self::Failed    => 'danger',
+            self::Failed => 'danger',
         };
     }
 }

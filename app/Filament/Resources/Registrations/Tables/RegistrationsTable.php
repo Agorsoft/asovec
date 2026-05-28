@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Registrations\Tables;
 
+use App\Enums\EventStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\RegistrationStatus;
 use App\Models\Association;
@@ -23,10 +24,12 @@ class RegistrationsTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->whereIn('status', [
-                RegistrationStatus::Pendiente->value,
-                RegistrationStatus::Confirmada->value,
-            ]))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query
+                ->whereIn('status', [
+                    RegistrationStatus::Pendiente->value,
+                    RegistrationStatus::Confirmada->value,
+                ])
+                ->whereHas('event', fn (Builder $q): Builder => $q->where('status', '!=', EventStatus::Finalizado->value)))
             ->columns([
                 TextColumn::make('registration_number')
                     ->label('Nº inscripción')

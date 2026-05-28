@@ -19,11 +19,11 @@ class DocumentTemplateFactory extends Factory
     public function definition(): array
     {
         return [
-            'name'                => fake()->sentence(3),
-            'description'         => fake()->optional()->sentence(),
-            'type'                => fake()->randomElement(DocumentType::cases()),
-            'file_path'           => 'documents/templates/sample.docx',
-            'detected_variables'  => [],
+            'name' => fake()->sentence(3),
+            'description' => fake()->optional()->sentence(),
+            'type' => fake()->randomElement(DocumentType::cases()),
+            'file_path' => 'documents/templates/sample.docx',
+            'detected_variables' => [],
         ];
     }
 }

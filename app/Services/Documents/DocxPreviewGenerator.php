@@ -22,7 +22,7 @@ class DocxPreviewGenerator
             return null;
         }
 
-        $filePath = storage_path('app/private/' . $template->file_path);
+        $filePath = storage_path('app/private/'.$template->file_path);
 
         if (! file_exists($filePath)) {
             return null;
@@ -37,8 +37,8 @@ class DocxPreviewGenerator
         $html = $this->convertToHtml($filePath);
 
         $template->updateQuietly([
-            'preview_hash'         => $hash,
-            'preview_html'         => $html,
+            'preview_hash' => $hash,
+            'preview_html' => $html,
             'preview_generated_at' => now(),
         ]);
 

@@ -6,7 +6,6 @@ use App\Enums\PaymentMethod;
 use App\Enums\RegistrationStatus;
 use App\Filament\Resources\Registrations\RegistrationResource;
 use App\Models\Association;
-use App\Models\Registration;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
@@ -71,7 +70,7 @@ class ViewRegistration extends ViewRecord
                     ]))
                     ->openUrlInNewTab(),
             ])
-                ->label('Imprimir recibo')
+                ->label('Imprimir')
                 ->icon('heroicon-o-printer')
                 ->color('gray')
                 ->button(),
@@ -117,37 +116,37 @@ class ViewRegistration extends ViewRecord
                 }),
             EditAction::make()
                 ->label('Editar'),
-                    Action::make('cancel')
-                        ->label('Cancelar')
-                        ->icon('heroicon-o-x-circle')
-                        ->color('danger')
-                        ->visible(fn (): bool => $this->record->status !== RegistrationStatus::Cancelada)
-                        ->requiresConfirmation()
-                        ->action(function (): void {
-                            $wasConfirmed = $this->record->status === RegistrationStatus::Confirmada;
+            Action::make('cancel')
+                ->label('Cancelar')
+                ->icon('heroicon-o-x-circle')
+                ->color('danger')
+                ->visible(fn (): bool => $this->record->status !== RegistrationStatus::Cancelada)
+                ->requiresConfirmation()
+                ->action(function (): void {
+                    $wasConfirmed = $this->record->status === RegistrationStatus::Confirmada;
 
-                            $this->record->update([
-                                'status' => RegistrationStatus::Cancelada,
-                            ]);
+                    $this->record->update([
+                        'status' => RegistrationStatus::Cancelada,
+                    ]);
 
-                            $this->record->refresh();
+                    $this->record->refresh();
 
-                            $notification = Notification::make()
-                                ->success()
-                                ->title('Inscripción cancelada');
+                    $notification = Notification::make()
+                        ->success()
+                        ->title('Inscripción cancelada');
 
-                            if ($wasConfirmed) {
-                                $notification->actions([
-                                    Action::make('printRefund')
-                                        ->label('Imprimir nota de devolución')
-                                        ->url(route('registrations.receipt.show', ['registration' => $this->record->id, 'type' => 'refund']))
-                                        ->openUrlInNewTab()
-                                        ->button(),
-                                ]);
-                            }
+                    if ($wasConfirmed) {
+                        $notification->actions([
+                            Action::make('printRefund')
+                                ->label('Imprimir nota de devolución')
+                                ->url(route('registrations.receipt.show', ['registration' => $this->record->id, 'type' => 'refund']))
+                                ->openUrlInNewTab()
+                                ->button(),
+                        ]);
+                    }
 
-                            $notification->send();
-                        }),
+                    $notification->send();
+                }),
         ];
     }
 }

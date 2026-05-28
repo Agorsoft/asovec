@@ -3,12 +3,11 @@
 use App\Enums\Gender;
 use App\Enums\MemberStatus;
 use App\Enums\PaymentMethod;
-use App\Enums\PaymentPeriod;
 use App\Enums\QuotaStatus;
+use App\Models\Association;
 use App\Models\Member;
 use App\Models\Quota;
 use App\Models\QuotaType;
-use App\Models\Association;
 use App\Services\MemberImportService;
 use Illuminate\Validation\ValidationException;
 
@@ -78,6 +77,11 @@ describe('MemberImportService', function () {
                 ->and($member->email)->toBe('juan@example.com')
                 ->and($member->payment_method_id)->toBe(PaymentMethod::Transferencia)
                 ->and($member->status)->toBe(MemberStatus::Pendiente);
+
+            $quota = Quota::query()->where('member_id', $member->id)->first();
+            expect($quota)->not()->toBeNull()
+                ->and($quota->status)->toBe(QuotaStatus::Pendiente)
+                ->and($quota->due_date)->not()->toBeNull();
         });
 
         it('sets member status to Activo when last_paid_date is provided', function () {
@@ -386,6 +390,50 @@ describe('MemberImportService', function () {
                 ->and($quota->status)->toBe(QuotaStatus::Pagada);
         });
 
+        it('creates pending quota for member without last_paid_date', function () {
+            QuotaType::factory()->create([
+                'period_type' => 'Anual',
+                'default_amount' => 50.0,
+                'grace_days' => 10,
+                'align_period_start' => true,
+            ]);
+
+            $rows = [
+                [
+                    'member_number' => '0001',
+                    'first_name' => 'Pedro',
+                    'last_name' => 'Gómez',
+                    'dni' => '',
+                    'gender' => '',
+                    'birth_date' => '',
+                    'address' => '',
+                    'postal_code' => '',
+                    'city' => '',
+                    'province' => '',
+                    'phone' => '',
+                    'email' => '',
+                    'payment_method' => '',
+                    'joined_at' => '',
+                    'last_paid_date' => '',
+                    'period_type' => '',
+                    'quota_type_name' => '',
+                    'custom_amount' => '',
+                    'notes' => '',
+                ],
+            ];
+
+            MemberImportService::import($rows);
+
+            $member = Member::first();
+            expect($member->status)->toBe(MemberStatus::Pendiente);
+
+            $quota = Quota::query()->where('member_id', $member->id)->first();
+            expect($quota)->not()->toBeNull()
+                ->and($quota->status)->toBe(QuotaStatus::Pendiente)
+                ->and($quota->due_date)->not()->toBeNull()
+                ->and((float) $quota->amount)->toBe(50.0);
+        });
+
         it('finds quota type by name', function () {
             $quotaType = QuotaType::factory()->create(['name' => 'CUOTA ANUAL ESPECIAL']);
 
@@ -602,20 +650,29 @@ describe('MemberImportService', function () {
             expect($result['imported'])->toBe(3)
                 ->and($result['errors'])->toBeEmpty()
                 ->and(Member::count())->toBe(3)
-                ->and(Quota::count())->toBe(1);
+                ->and(Quota::count())->toBe(3);
 
             $juan = Member::where('member_number', '0001')->first();
             expect($juan->status)->toBe(MemberStatus::Activo)
                 ->and($juan->payment_method_id)->toBe(PaymentMethod::Transferencia)
                 ->and($juan->dni)->toBe('12345678A');
 
+            $juanQuota = Quota::where('member_id', $juan->id)->first();
+            expect($juanQuota->status)->toBe(QuotaStatus::Pagada);
+
             $maria = Member::where('member_number', '0002')->first();
             expect($maria->status)->toBe(MemberStatus::Pendiente)
                 ->and($maria->payment_method_id)->toBeNull();
 
+            $mariaQuota = Quota::where('member_id', $maria->id)->first();
+            expect($mariaQuota->status)->toBe(QuotaStatus::Pendiente);
+
             $carlos = Member::where('member_number', '0003')->first();
             expect($carlos->status)->toBe(MemberStatus::Pendiente)
                 ->and($carlos->gender)->toBe(Gender::NoDefinido);
+
+            $carlosQuota = Quota::where('member_id', $carlos->id)->first();
+            expect($carlosQuota->status)->toBe(QuotaStatus::Pendiente);
         });
 
         it('syncs association member counter with the highest imported member_number', function () {

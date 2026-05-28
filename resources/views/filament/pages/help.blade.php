@@ -168,7 +168,7 @@
             <h3 class="text-lg font-semibold mt-4">4.4 Recibo de cuota</h3>
             <p>
                 Una vez pagada, puede generar e imprimir el recibo en PDF desde el botón
-                <strong>Imprimir recibo</strong> en la ficha de la cuota.
+                <strong>Imprimir</strong> en la ficha de la cuota.
             </p>
 
             <h3 class="text-lg font-semibold mt-4">4.5 Tipos de cuota</h3>
@@ -263,7 +263,7 @@
                 Desde la ficha de la inscripción, pulse <strong>Registrar pago</strong>.
                 Al confirmar, la inscripción pasa a estado <em>Confirmada</em> y se registra
                 una transacción de ingreso en contabilidad. Puede imprimir el recibo desde el botón
-                <strong>Imprimir recibo</strong>.
+                <strong>Imprimir</strong>.
             </p>
 
             <h3 class="text-lg font-semibold mt-4">6.5 Cancelar una inscripción</h3>

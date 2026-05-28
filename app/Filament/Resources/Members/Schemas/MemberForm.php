@@ -10,6 +10,7 @@ use App\Enums\SepaSequenceType;
 use App\Models\Association;
 use App\Models\Member;
 use App\Models\QuotaType;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -53,6 +54,34 @@ class MemberForm
                                 TextInput::make('postal_code')->label('C.P.')->columnSpan(2),
                                 TextInput::make('city')->label('Localidad')->columnSpan(4),
                                 TextInput::make('province')->label('Provincia')->columnSpan(3),
+                                TextInput::make('phone')->label('Teléfono')->tel()->live(onBlur: true)->columnSpan(3),
+                                TextInput::make('email')->label('Correo electrónico')->email()->live(onBlur: true)->columnSpan(6),
+                            ])->columns(12)->columnSpanFull()->extraAttributes(['class' => 'mt-4']),
+                        Section::make('Comunicaciones')
+                            ->schema([
+                                Checkbox::make('whatsapp_opt_in')
+                                    ->label('WhatsApp')
+                                    ->disabled(fn (Get $get): bool => ! filled($get('phone')))
+                                    ->helperText(fn (Get $get): ?string => filled($get('phone')) ? null : 'Requiere teléfono')
+                                    ->columnSpan(4),
+                                Checkbox::make('sms_opt_in')
+                                    ->label('Mensaje SMS')
+                                    ->disabled(fn (Get $get): bool => ! filled($get('phone')))
+                                    ->helperText(fn (Get $get): ?string => filled($get('phone')) ? null : 'Requiere teléfono')
+                                    ->columnSpan(4),
+                                Checkbox::make('email_opt_in')
+                                    ->label('Correo electrónico')
+                                    ->disabled(fn (Get $get): bool => ! filled($get('email')))
+                                    ->helperText(fn (Get $get): ?string => filled($get('email')) ? null : 'Requiere correo electrónico')
+                                    ->columnSpan(4),
+                            ])->columns(12)->columnSpanFull()->extraAttributes(['class' => 'mt-4']),
+                        Section::make('Datos Bancarios')
+                            ->visible(fn (Get $get): bool => static::requiresBankData($get('payment_method_id')))
+                            ->schema([
+                                TextInput::make('bank_account_holder')->label('Titular de la cuenta')->maxLength(255)->columnSpan(3),
+                                TextInput::make('bank_iban')->label('IBAN')->maxLength(24)->mask('aa99 9999 9999 9999 9999 9999')->copyable(copyMessage: 'Copiado!', copyMessageDuration: 1500)->columnSpan(3),
+                                TextInput::make('bank_bic')->label('BIC')->maxLength(11)->columnSpan(2),
+                                TextInput::make('sepa_mandate_reference')->label('Referencia mandato')->maxLength(255)->columnSpan(2),
                                 TextInput::make('phone')->label('Teléfono')->tel()->columnSpan(3),
                                 TextInput::make('email')->label('Correo electrónico')->email()->columnSpan(6),
                             ])->columns(12)->columnSpanFull()->extraAttributes(['class' => 'mt-4']),
@@ -148,18 +177,20 @@ class MemberForm
                             ->validationMessages(['required' => 'El estado es obligatorio.'])
                             ->columnSpan(1),
                         Select::make('quota_id')
-                            ->label('Tipo de cuota al activar')
+                            ->label('Tipo de cuota')
                             ->options(fn (): array => static::availableQuotaTypes())
-                            ->disabled(fn (Get $get): bool => $get('status') === MemberStatus::Activo->value && ! static::hasAvailableQuotaTypes())
-                            ->visible(fn (?Member $record, Get $get): bool => $get('status') === MemberStatus::Activo->value
+                            ->disabled(fn (): bool => ! static::hasAvailableQuotaTypes())
+                            ->visible(fn (?Member $record, Get $get): bool => in_array($get('status'), [MemberStatus::Activo->value, MemberStatus::Pendiente->value])
                                 && ! ($record && static::memberHasCurrentPaidQuota($record)))
-                            ->helperText(fn (): ?string => static::hasAvailableQuotaTypes()
-                                ? 'Seleccione el tipo de cuota que se aplicará al activar.'
-                                : 'No existen tipos de cuota disponibles. Debe crearlos antes de activar socios.')
-                            ->required(fn (?Member $record, Get $get): bool => $get('status') === MemberStatus::Activo->value
-                                && static::hasAvailableQuotaTypes()
-                                && ! ($record && static::memberHasCurrentPaidQuota($record)))
-                            ->validationMessages(['required' => 'Debe asignar una cuota al activar.'])
+                            ->helperText(fn (Get $get): ?string => static::hasAvailableQuotaTypes()
+                                ? ($get('status') === MemberStatus::Activo->value
+                                    ? 'Seleccione el tipo de cuota que se marcará como pagada al activar.'
+                                    : 'Seleccione el tipo de cuota que se creará como pendiente de pago.')
+                                : 'No existen tipos de cuota disponibles. Debe crearlos antes.')
+                            ->required(fn (?Member $record, Get $get): bool => static::hasAvailableQuotaTypes()
+                                && in_array($get('status'), [MemberStatus::Activo->value, MemberStatus::Pendiente->value])
+                                && ($record === null || ($get('status') === MemberStatus::Activo->value && ! static::memberHasCurrentPaidQuota($record))))
+                            ->validationMessages(['required' => 'Debe asignar un tipo de cuota.'])
                             ->dehydrated()
                             ->columnSpanFull(),
                         Textarea::make('notes')->label('Notas')->columnSpanFull(),

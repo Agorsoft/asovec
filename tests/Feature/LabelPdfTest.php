@@ -4,6 +4,7 @@ use App\DataTransferObjects\Labels\PrintJobConfig;
 use App\Enums\LabelField;
 use App\Models\LabelTemplate;
 use App\Models\Member;
+use App\Models\User;
 use App\Services\Labels\LabelGeometryCalculator;
 use App\Services\Labels\LabelPdfGenerator;
 
@@ -114,7 +115,7 @@ describe('LabelGeometryCalculator', function () {
 describe('LabelPdfGenerator', function () {
     beforeEach(function () {
         $this->template = makeTemplate();
-        $this->generator = new LabelPdfGenerator();
+        $this->generator = new LabelPdfGenerator;
     });
 
     it('genera un PDF válido con socios reales', function () {
@@ -180,7 +181,7 @@ describe('LabelPdfGenerator', function () {
 
 describe('LabelPrintController', function () {
     beforeEach(function () {
-        $this->actingAs(\App\Models\User::factory()->create());
+        $this->actingAs(User::factory()->create());
         $this->template = LabelTemplate::factory()->create(makeTemplate()->toArray());
     });
 

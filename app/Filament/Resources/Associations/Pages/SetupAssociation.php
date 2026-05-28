@@ -5,11 +5,14 @@ namespace App\Filament\Resources\Associations\Pages;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentPeriod;
 use App\Filament\Resources\Associations\AssociationResource;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Resources\Pages\CreateRecord\Concerns\HasWizard;
 use Filament\Schemas\Components\Callout;
@@ -19,6 +22,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Wizard\Step;
 use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Symfony\Component\Mailer\Transport;
 
 class SetupAssociation extends CreateRecord
 {
@@ -151,6 +155,77 @@ class SetupAssociation extends CreateRecord
                                         ->columnSpanFull(),
                                 ]),
                         ]),
+                ]),
+            Step::make('Correo')
+                ->schema([
+                    Section::make('Configuración de correo')
+                        ->headerActions([
+                            Action::make('testMail')
+                                ->label('Probar conexión')
+                                ->icon('heroicon-o-bolt')
+                                ->action(function (Get $get): void {
+                                    $mailer = $get('mail_mailer') ?? '';
+                                    $host = $get('mail_host') ?? '';
+                                    $port = $get('mail_port') ?? '';
+                                    $user = $get('mail_username') ?? '';
+                                    $pass = $get('mail_password') ?? '';
+                                    $encryption = $get('mail_encryption') ?? '';
+
+                                    if ($mailer !== 'smtp') {
+                                        Notification::make()->danger()->title('No soportado')->body('Solo comprobación SMTP soportada en esta prueba.')->send();
+
+                                        return;
+                                    }
+
+                                    $scheme = $encryption === 'ssl' ? 'smtps' : 'smtp';
+                                    $userEnc = rawurlencode((string) ($user ?? ''));
+                                    $passEnc = rawurlencode((string) ($pass ?? ''));
+                                    $dsn = sprintf('%s://%s:%s@%s:%s', $scheme, $userEnc, $passEnc, $host, $port);
+
+                                    try {
+                                        $transport = Transport::fromDsn($dsn);
+                                        $transport->start();
+                                        Notification::make()->success()->title('Conexión SMTP OK')->send();
+                                    } catch (\Throwable $e) {
+                                        Notification::make()->danger()->title('Error al conectar')->body($e->getMessage())->send();
+                                    }
+                                }),
+                        ])->schema([
+                            Checkbox::make('use_email')->label('Usar servicio de correo')->live()->columnSpanFull(),
+                            Select::make('mail_mailer')
+                                ->label('Mailer')
+                                ->options([
+                                    'smtp' => 'SMTP',
+                                    'sendmail' => 'Sendmail',
+                                    'mailgun' => 'Mailgun',
+                                    'ses' => 'Amazon SES',
+                                    'log' => 'Log',
+                                ])
+                                ->native(false)
+                                ->columnSpan(2)
+                                ->disabled(fn (Get $get): bool => ! $get('use_email')),
+
+                            TextInput::make('mail_host')->label('Host')->maxLength(255)->columnSpan(2)->disabled(fn (Get $get): bool => ! $get('use_email')),
+                            TextInput::make('mail_port')->label('Puerto')->numeric()->columnSpan(1)->disabled(fn (Get $get): bool => ! $get('use_email')),
+
+                            Select::make('mail_encryption')
+                                ->label('Cifrado')
+                                ->options([
+                                    'tls' => 'TLS',
+                                    'ssl' => 'SSL',
+                                    'starttls' => 'STARTTLS',
+                                    'none' => 'Ninguno',
+                                ])
+                                ->native(false)
+                                ->columnSpan(1)
+                                ->disabled(fn (Get $get): bool => ! $get('use_email')),
+                            TextInput::make('mail_username')->label('Usuario')->maxLength(255)->columnSpan(2)->disabled(fn (Get $get): bool => ! $get('use_email')),
+                            TextInput::make('mail_password')->label('Contraseña')->password()->columnSpan(2)->disabled(fn (Get $get): bool => ! $get('use_email')),
+
+                            TextInput::make('mail_from_address')->label('Remitente (dirección)')->email()->maxLength(255)->columnSpan(2)->disabled(fn (Get $get): bool => ! $get('use_email')),
+                            TextInput::make('mail_from_name')->label('Remitente (nombre)')->maxLength(255)->columnSpan(2)->disabled(fn (Get $get): bool => ! $get('use_email')),
+                        ])
+                        ->columns(4),
                 ]),
         ];
     }

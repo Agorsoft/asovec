@@ -157,7 +157,7 @@ class Quota extends Model
     {
         $at ??= now();
 
-        if ($this->status === QuotaStatus::Pendiente && $this->due_date?->gt($at->copy()->startOfDay())) {
+        if ($this->status === QuotaStatus::Pendiente && $this->due_date?->lt($at->copy()->startOfDay())) {
             return QuotaStatus::Vencida;
         }
 
@@ -193,7 +193,7 @@ class Quota extends Model
             $this->ensureCanBeCancelled($cancelledAt);
 
             return true;
-        } catch (\Illuminate\Validation\ValidationException) {
+        } catch (ValidationException) {
             return false;
         }
     }

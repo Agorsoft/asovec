@@ -242,7 +242,33 @@ class MemberImportService
 
         if ($validated['quota_data']) {
             static::createQuotaForMember($member, $validated['quota_data']);
+        } else {
+            static::createPendingQuotaForMember($member);
         }
+    }
+
+    /**
+     * Create a pending quota for the current period for a member without paid quota history.
+     */
+    private static function createPendingQuotaForMember(Member $member): void
+    {
+        $quotaType = static::findQuotaType(['quota_type_name' => null, 'period_type' => null, 'paid_date' => null]);
+
+        if (! $quotaType) {
+            return;
+        }
+
+        $periodData = QuotaPeriodService::forMember($member, $quotaType);
+
+        Quota::create([
+            'member_id' => $member->id,
+            'quota_type_id' => $quotaType->id,
+            'period_start' => $periodData['period_start'],
+            'period_end' => $periodData['period_end'],
+            'due_date' => $periodData['due_date'],
+            'amount' => QuotaPeriodService::defaultAmount($quotaType) ?? 0,
+            'status' => QuotaStatus::Pendiente,
+        ]);
     }
 
     /**

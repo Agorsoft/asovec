@@ -12,7 +12,6 @@ use App\Models\QuotaType;
 use App\Services\QuotaPeriodService;
 use App\Services\QuotaTypeResolver;
 use Filament\Actions\Action;
-use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -40,7 +39,7 @@ class EditQuota extends EditRecord
                 ->url(fn () => QuotaResource::getUrl('index'))
                 ->color('gray'),
             Action::make('markAsPaid')
-                ->label('Marcar pagada')
+                ->label('Pagar')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
                 ->visible(fn (): bool => $this->record->status !== QuotaStatus::Pagada)

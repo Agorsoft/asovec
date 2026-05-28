@@ -131,6 +131,31 @@ class AssociationInfolist
                                             ]),
                                     ]),
                             ]),
+                        Tab::make('Correo')
+                            ->schema([
+                                Section::make('Configuración de correo')
+                                    ->schema([
+                                        Grid::make(2)
+                                            ->schema([
+                                                TextEntry::make('use_email')
+                                                    ->label('Usar servicio de correo')
+                                                    ->formatStateUsing(fn ($state): string => $state ? 'Sí' : 'No')
+                                                    ->default('No')
+                                                    ->columnSpan(2),
+                                                TextEntry::make('mail_mailer')->label('Mailer')->default('Sin datos')->columnSpan(2),
+                                                TextEntry::make('mail_host')->label('Host')->default('Sin datos')->columnSpan(2),
+                                                TextEntry::make('mail_port')->label('Puerto')->default('Sin datos')->columnSpan(1),
+                                                TextEntry::make('mail_encryption')->label('Cifrado')->default('Sin datos')->columnSpan(1),
+                                                TextEntry::make('mail_username')->label('Usuario')->default('Sin datos')->columnSpan(2),
+                                                TextEntry::make('mail_password')->label('Contraseña')->formatStateUsing(fn ($state): string => filled($state) ? '******' : 'Sin datos')->columnSpan(2),
+                                                TextEntry::make('mail_from_address')->label('Remitente (dirección)')->default('Sin datos')->columnSpan(2),
+                                                TextEntry::make('mail_from_name')->label('Remitente (nombre)')->default('Sin datos')->columnSpan(2),
+                                            ])
+                                            ->columnSpanFull()
+                                            ->columns(3),
+                                    ])
+                                    ->visible(fn ($record): bool => (bool) ($record?->use_email ?? false)),
+                            ]),
                     ]),
             ])->columns(1);
 

@@ -61,9 +61,9 @@ class QuotaTypesTable
                 TextColumn::make('grace_days')
                     ->label('Días gracia')
                     ->sortable(),
-                   TextColumn::make('refund_days')
-                       ->label('Días devolución')
-                       ->sortable(),
+                TextColumn::make('refund_days')
+                    ->label('Días devolución')
+                    ->sortable(),
                 TextColumn::make('sort_order')
                     ->label('Orden')
                     ->sortable(),

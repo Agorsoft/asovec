@@ -71,20 +71,23 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups([
                 NavigationGroup::make()
                     ->label('Gestión de Socios')
-                    ->icon(Heroicon::OutlinedUsers)
-                    ->collapsed(),
+                    ->icon(Heroicon::OutlinedUsers),
                 NavigationGroup::make()
                     ->label('Gestión de Eventos')
-                    ->icon(Heroicon::OutlinedCalendar),
+                    ->icon(Heroicon::OutlinedCalendar)
+                    ->collapsed(),
                 NavigationGroup::make()
                     ->label('Contabilidad')
-                    ->icon(Heroicon::OutlinedCurrencyEuro),
+                    ->icon(Heroicon::OutlinedCurrencyEuro)
+                    ->collapsed(),
                 NavigationGroup::make()
                     ->label('Reportes')
-                    ->icon(Heroicon::OutlinedChartBar),
+                    ->icon(Heroicon::OutlinedChartBar)
+                    ->collapsed(),
                 NavigationGroup::make()
                     ->label('Configuración')
-                    ->icon(Heroicon::OutlinedCog6Tooth),
+                    ->icon(Heroicon::OutlinedCog6Tooth)
+                    ->collapsed(),
             ]);
     }
 }

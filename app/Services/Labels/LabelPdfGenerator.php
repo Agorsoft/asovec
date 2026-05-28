@@ -5,7 +5,6 @@ namespace App\Services\Labels;
 use App\DataTransferObjects\Labels\LabelPosition;
 use App\DataTransferObjects\Labels\PrintJobConfig;
 use App\Models\LabelTemplate;
-use App\Models\Member;
 
 /**
  * Genera el PDF de impresión de etiquetas postales usando tc-lib-pdf.
@@ -21,7 +20,7 @@ final class LabelPdfGenerator
 
     public function __construct()
     {
-        $this->content = new LabelContentBuilder();
+        $this->content = new LabelContentBuilder;
 
         if (! defined('K_PATH_FONTS')) {
             define(
@@ -111,7 +110,7 @@ final class LabelPdfGenerator
      * Cada campo se pre-envuelve en PHP para conocer cuántas sub-líneas ocupa
      * antes de dibujar, evitando que un campo largo sobreescriba al siguiente.
      *
-     * @param string[] $lines
+     * @param  string[]  $lines
      */
     private function renderLabel(
         LabelTcpdf $pdf,
@@ -176,7 +175,7 @@ final class LabelPdfGenerator
         $currentLine = '';
 
         foreach ($words as $word) {
-            $candidate = $currentLine === '' ? $word : $currentLine . ' ' . $word;
+            $candidate = $currentLine === '' ? $word : $currentLine.' '.$word;
 
             if ($pdf->measureStringWidth($candidate) <= $usableWidthMm) {
                 $currentLine = $candidate;

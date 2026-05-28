@@ -31,7 +31,7 @@ class DocumentGeneration extends Model
 
     public function generatedBy(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'generated_by');
+        return $this->belongsTo(User::class, 'generated_by');
     }
 
     public function member(): BelongsTo

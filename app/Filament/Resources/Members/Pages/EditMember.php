@@ -20,6 +20,8 @@ class EditMember extends EditRecord
 {
     protected static string $resource = MemberResource::class;
 
+    private bool $optInNewlyActivated = false;
+
     protected function getAllRelationManagers(): array
     {
         return [];
@@ -53,6 +55,12 @@ class EditMember extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        // Capture whether any opt-in is being newly activated before the record is updated.
+        $this->optInNewlyActivated =
+            (! $this->record->whatsapp_opt_in && (bool) ($data['whatsapp_opt_in'] ?? false)) ||
+            (! $this->record->sms_opt_in && (bool) ($data['sms_opt_in'] ?? false)) ||
+            (! $this->record->email_opt_in && (bool) ($data['email_opt_in'] ?? false));
+
         if (Arr::get($data, 'status') === MemberStatus::Activo->value && empty(Arr::get($data, 'joined_at'))) {
             $data['joined_at'] = Carbon::now()->toDateString();
         }
@@ -103,6 +111,9 @@ class EditMember extends EditRecord
     {
         $state = $this->form->getState();
 
+        // Notify about printing consent sheet before any early returns from quota logic.
+        $this->maybeNotifyPrintConsent();
+
         if (($state['status'] ?? null) === MemberStatus::Activo->value && ! empty($state['quota_id'])) {
             $quotaType = QuotaTypeResolver::resolve((int) $state['quota_id']);
 
@@ -142,6 +153,33 @@ class EditMember extends EditRecord
             }
         }
 
+        if (($state['status'] ?? null) === MemberStatus::Pendiente->value && ! empty($state['quota_id'])) {
+            $quotaType = QuotaTypeResolver::resolve((int) $state['quota_id']);
+
+            if ($quotaType) {
+                $periodData = QuotaPeriodService::forMember($this->record, $quotaType);
+
+                $existingQuota = Quota::query()
+                    ->where('member_id', $this->record->id)
+                    ->whereDate('period_start', $periodData['period_start'])
+                    ->whereDate('period_end', $periodData['period_end'])
+                    ->where('status', '!=', QuotaStatus::Cancelada->value)
+                    ->first();
+
+                if (! $existingQuota) {
+                    Quota::query()->create([
+                        'member_id' => $this->record->id,
+                        'quota_type_id' => $quotaType->id,
+                        'period_start' => $periodData['period_start'],
+                        'period_end' => $periodData['period_end'],
+                        'due_date' => $periodData['due_date'],
+                        'amount' => QuotaPeriodService::defaultAmount($quotaType) ?? 0,
+                        'status' => QuotaStatus::Pendiente,
+                    ]);
+                }
+            }
+        }
+
         // Sync last_member_number if this record's number is greater
         $memberNumber = (int) $this->record->member_number;
         if ($memberNumber > 0) {
@@ -152,5 +190,28 @@ class EditMember extends EditRecord
                 $association->update(['last_member_number' => $memberNumber]);
             }
         }
+    }
+
+    private function maybeNotifyPrintConsent(): void
+    {
+        if (! $this->optInNewlyActivated) {
+            return;
+        }
+
+        Notification::make()
+            ->info()
+            ->title('¿Imprimir hoja de consentimiento?')
+            ->body('Se han activado nuevas preferencias de comunicación. ¿Deseas imprimir la hoja de consentimiento para que el socio la firme?')
+            ->persistent()
+            ->actions([
+                Action::make('print')
+                    ->label('Imprimir')
+                    ->button()
+                    ->url(route('members.consent.print', $this->record), shouldOpenInNewTab: true),
+                Action::make('skip')
+                    ->label('Omitir')
+                    ->close(),
+            ])
+            ->send();
     }
 }

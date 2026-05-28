@@ -12,7 +12,7 @@ class HelpPdfController
     {
         $html = view('filament.pdf.help-pdf')->render();
 
-        $options = new Options();
+        $options = new Options;
         $options->set('isHtml5ParserEnabled', true);
         $options->set('isPhpEnabled', false);
         $options->set('defaultFont', 'DejaVu Sans');
@@ -30,4 +30,3 @@ class HelpPdfController
         ]);
     }
 }
-

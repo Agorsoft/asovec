@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Members\RelationManagers;
 
 use App\Enums\RegistrationStatus;
+use App\Enums\RegistrationType;
 use App\Models\Registration;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -12,11 +13,10 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
-use App\Enums\RegistrationType;
-use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Schemas\Schema;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -24,6 +24,7 @@ use Filament\Tables\Table;
 class RegistrationsRelationManager extends RelationManager
 {
     protected static string $relationship = 'registrations';
+
     protected static ?string $title = 'Inscripciones';
 
     public function form(Schema $schema): Schema

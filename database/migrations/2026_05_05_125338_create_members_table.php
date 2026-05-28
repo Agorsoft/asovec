@@ -38,6 +38,9 @@ return new class extends Migration
             $table->string('status', 30)->default('Pendiente')->index();
             $table->date('joined_at')->nullable();
             $table->date('left_at')->nullable();
+            $table->boolean('whatsapp_opt_in')->default(false);
+            $table->boolean('sms_opt_in')->default(false);
+            $table->boolean('email_opt_in')->default(false);
             $table->text('notes')->nullable();
             $table->timestamps();
 

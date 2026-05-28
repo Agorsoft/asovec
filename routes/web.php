@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AssociationSepaMandateController;
+use App\Http\Controllers\ConsentSheetController;
 use App\Http\Controllers\DocumentTemplateGenerateController;
 use App\Http\Controllers\HelpPdfController;
 use App\Http\Controllers\InstallerController;
@@ -43,6 +44,8 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
+    Route::get('socios/{member}/consentimiento', [ConsentSheetController::class, 'show'])
+        ->name('members.consent.print');
     Route::get('asociacion/{association}/mandato-sepa', AssociationSepaMandateController::class)
         ->name('associations.sepa.print');
     Route::get('socios/importacion/descargar-ejemplo', MemberImportDownloadController::class.'@download')

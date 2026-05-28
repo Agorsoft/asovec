@@ -17,6 +17,8 @@ class EditNonMember extends EditRecord
 {
     protected static string $resource = MemberResource::class;
 
+    private bool $optInNewlyActivated = false;
+
     protected function getAllRelationManagers(): array
     {
         return [];
@@ -54,6 +56,44 @@ class EditNonMember extends EditRecord
     protected function getRedirectUrl(): ?string
     {
         return $this->previousUrl ?? MemberResource::getUrl('index');
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        $this->optInNewlyActivated =
+            (! $this->record->whatsapp_opt_in && (bool) ($data['whatsapp_opt_in'] ?? false)) ||
+            (! $this->record->sms_opt_in && (bool) ($data['sms_opt_in'] ?? false)) ||
+            (! $this->record->email_opt_in && (bool) ($data['email_opt_in'] ?? false));
+
+        return $data;
+    }
+
+    protected function afterSave(): void
+    {
+        $this->maybeNotifyPrintConsent();
+    }
+
+    private function maybeNotifyPrintConsent(): void
+    {
+        if (! $this->optInNewlyActivated) {
+            return;
+        }
+
+        Notification::make()
+            ->info()
+            ->title('¿Imprimir hoja de consentimiento?')
+            ->body('Se han activado nuevas preferencias de comunicación. ¿Deseas imprimir la hoja de consentimiento para que el interesado la firme?')
+            ->persistent()
+            ->actions([
+                Action::make('print')
+                    ->label('Imprimir')
+                    ->button()
+                    ->url(route('members.consent.print', $this->record), shouldOpenInNewTab: true),
+                Action::make('skip')
+                    ->label('Omitir')
+                    ->close(),
+            ])
+            ->send();
     }
 
     public function convertToMember(): void

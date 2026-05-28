@@ -3,13 +3,12 @@
 namespace App\Filament\Resources\Registrations\Pages;
 
 use App\Enums\PaymentMethod;
-use App\Models\Registration;
 use App\Enums\RegistrationStatus;
 use App\Enums\RegistrationType;
 use App\Filament\Resources\Registrations\RegistrationResource;
 use App\Models\Association;
+use App\Models\Registration;
 use Filament\Actions\Action;
-use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;

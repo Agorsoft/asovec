@@ -7,9 +7,8 @@ use App\Services\Documents\DocumentVariableRegistry;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
+use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWord\Shared\Html as PhpWordHtml;
-use PhpOffice\PhpWord\Style\Font;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ListDocumentTemplates extends ListRecords
@@ -25,7 +24,7 @@ class ListDocumentTemplates extends ListRecords
                 ->color('gray')
                 ->action(function (): StreamedResponse {
                     return response()->streamDownload(
-                        fn () => print($this->generateSampleDocx()),
+                        fn () => print ($this->generateSampleDocx()),
                         'plantilla-ejemplo-variables.docx',
                         ['Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
                     );
@@ -41,7 +40,7 @@ class ListDocumentTemplates extends ListRecords
         $registry = app(DocumentVariableRegistry::class);
         $grouped = $registry->groupedForDisplay();
 
-        $phpWord = new PhpWord();
+        $phpWord = new PhpWord;
         $phpWord->setDefaultFontName('Arial');
         $phpWord->setDefaultFontSize(10);
 
@@ -56,7 +55,7 @@ class ListDocumentTemplates extends ListRecords
 
         $section->addText(
             'Copia cualquiera de los placeholders de la columna "Placeholder" y pégalo en tu documento Word. '
-            . 'Al generar el documento, cada placeholder será reemplazado automáticamente por el valor del socio seleccionado.',
+            .'Al generar el documento, cada placeholder será reemplazado automáticamente por el valor del socio seleccionado.',
             ['size' => 10, 'color' => '6B7280'],
             ['spaceAfter' => 300]
         );
@@ -65,7 +64,7 @@ class ListDocumentTemplates extends ListRecords
         $table = $section->addTable([
             'borderSize' => 6,
             'borderColor' => 'D1D5DB',
-            'cellMargin'  => 80,
+            'cellMargin' => 80,
         ]);
 
         // Cabecera de tabla
@@ -81,7 +80,7 @@ class ListDocumentTemplates extends ListRecords
         foreach ($grouped as $group => $variables) {
             foreach ($variables as $key => $label) {
                 $table->addRow();
-                $table->addCell(3000)->addText('${' . $key . '}', ['name' => 'Courier New', 'size' => 9, 'color' => '1D4ED8']);
+                $table->addCell(3000)->addText('${'.$key.'}', ['name' => 'Courier New', 'size' => 9, 'color' => '1D4ED8']);
                 $table->addCell(4500)->addText($label, ['size' => 9]);
                 $table->addCell(2000)->addText($group, ['size' => 9, 'color' => '6B7280']);
             }
@@ -118,7 +117,7 @@ class ListDocumentTemplates extends ListRecords
             ['size' => 10, 'name' => 'Courier New', 'color' => '1D4ED8']
         );
 
-        $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
+        $objWriter = IOFactory::createWriter($phpWord, 'Word2007');
         $tmp = tempnam(sys_get_temp_dir(), 'sample_docx_');
         $objWriter->save($tmp);
 

@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Transactions\Pages;
 use App\Filament\Resources\Transactions\TransactionResource;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
-use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\URL;
@@ -16,7 +15,7 @@ class EditTransaction extends EditRecord
 
     protected static ?string $title = 'Editar transacción';
 
-    public function mount(int | string $record): void
+    public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
 

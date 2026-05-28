@@ -1,7 +1,7 @@
 <?php
 
-use App\Services\Documents\DocxTemplateParser;
 use App\Services\Documents\DocumentVariableRegistry;
+use App\Services\Documents\DocxTemplateParser;
 
 covers(DocxTemplateParser::class);
 
@@ -13,13 +13,13 @@ covers(DocxTemplateParser::class);
 function makeMinimalDocx(string $bodyText): string
 {
     $xml = '<?xml version="1.0" encoding="UTF-8"?>'
-        . '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
-        . '<w:body><w:p><w:r><w:t>'
-        . $bodyText
-        . '</w:t></w:r></w:p></w:body></w:document>';
+        .'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        .'<w:body><w:p><w:r><w:t>'
+        .$bodyText
+        .'</w:t></w:r></w:p></w:body></w:document>';
 
     $tmp = tempnam(sys_get_temp_dir(), 'docx_test_');
-    $zip = new ZipArchive();
+    $zip = new ZipArchive;
     $zip->open($tmp, ZipArchive::OVERWRITE);
     $zip->addFromString('word/document.xml', $xml);
     $zip->close();
@@ -30,8 +30,8 @@ function makeMinimalDocx(string $bodyText): string
 test('detecta variables válidas del catálogo', function () {
     $path = makeMinimalDocx('Hola ${member.first_name} ${member.last_name}');
 
-    $registry = new DocumentVariableRegistry();
-    $parser = new DocxTemplateParser();
+    $registry = new DocumentVariableRegistry;
+    $parser = new DocxTemplateParser;
 
     $result = $parser->parse($path, $registry);
 
@@ -44,8 +44,8 @@ test('detecta variables válidas del catálogo', function () {
 test('clasifica correctamente variables no reconocidas', function () {
     $path = makeMinimalDocx('${member.first_name} ${socio.nombre_desconocido}');
 
-    $registry = new DocumentVariableRegistry();
-    $parser = new DocxTemplateParser();
+    $registry = new DocumentVariableRegistry;
+    $parser = new DocxTemplateParser;
 
     $result = $parser->parse($path, $registry);
 
@@ -58,8 +58,8 @@ test('clasifica correctamente variables no reconocidas', function () {
 test('devuelve arrays vacíos si no hay variables', function () {
     $path = makeMinimalDocx('Sin variables aquí.');
 
-    $registry = new DocumentVariableRegistry();
-    $parser = new DocxTemplateParser();
+    $registry = new DocumentVariableRegistry;
+    $parser = new DocxTemplateParser;
 
     $result = $parser->parse($path, $registry);
 
@@ -73,8 +73,8 @@ test('devuelve arrays vacíos si no hay variables', function () {
 test('deduplica variables repetidas', function () {
     $path = makeMinimalDocx('${member.first_name} y también ${member.first_name}');
 
-    $registry = new DocumentVariableRegistry();
-    $parser = new DocxTemplateParser();
+    $registry = new DocumentVariableRegistry;
+    $parser = new DocxTemplateParser;
 
     $result = $parser->parse($path, $registry);
 
@@ -87,8 +87,8 @@ test('lanza excepción si el archivo no es un DOCX válido', function () {
     $tmp = tempnam(sys_get_temp_dir(), 'invalid_');
     file_put_contents($tmp, 'esto no es un zip');
 
-    $registry = new DocumentVariableRegistry();
-    $parser = new DocxTemplateParser();
+    $registry = new DocumentVariableRegistry;
+    $parser = new DocxTemplateParser;
 
     expect(fn () => $parser->parse($tmp, $registry))->toThrow(RuntimeException::class);
 

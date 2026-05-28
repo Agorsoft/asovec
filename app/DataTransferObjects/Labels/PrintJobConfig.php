@@ -14,10 +14,10 @@ use Illuminate\Support\Collection;
 final readonly class PrintJobConfig
 {
     /**
-     * @param Collection<int, Member> $members         Socios a imprimir.
-     * @param array<int, string>      $fields          Valores de LabelField::value a imprimir.
-     * @param int                     $startPosition   Posición inicial (1-based).
-     * @param bool                    $testSheet        Imprimir hoja de prueba.
+     * @param  Collection<int, Member>  $members  Socios a imprimir.
+     * @param  array<int, string>  $fields  Valores de LabelField::value a imprimir.
+     * @param  int  $startPosition  Posición inicial (1-based).
+     * @param  bool  $testSheet  Imprimir hoja de prueba.
      */
     public function __construct(
         public LabelTemplate $template,

@@ -23,9 +23,13 @@ class GenerateDocumentPage extends Page implements HasForms
 
     // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentArrowDown;
     protected static ?string $navigationLabel = 'Imprimir plantilla';
+
     protected static ?string $title = 'Generar documento desde plantilla';
+
     protected static UnitEnum|string|null $navigationGroup = 'Reportes';
+
     protected static ?int $navigationSort = 35;
+
     protected string $view = 'filament.pages.generate-document';
 
     public ?array $data = [];
@@ -47,7 +51,7 @@ class GenerateDocumentPage extends Page implements HasForms
                                 DocumentTemplate::orderBy('name')
                                     ->get()
                                     ->mapWithKeys(fn (DocumentTemplate $t) => [
-                                        $t->id => $t->name . ' (' . $t->type->getLabel() . ')',
+                                        $t->id => $t->name.' ('.$t->type->getLabel().')',
                                     ])
                             )
                             ->required()
@@ -68,7 +72,7 @@ class GenerateDocumentPage extends Page implements HasForms
                                     ->orderBy('first_name')
                                     ->get()
                                     ->mapWithKeys(fn (Member $m) => [
-                                        $m->id => $m->last_name . ', ' . $m->first_name,
+                                        $m->id => $m->last_name.', '.$m->first_name,
                                     ])
                             )
                             ->helperText('Selecciona el socio para el que se generará el documento.'),
@@ -87,8 +91,8 @@ class GenerateDocumentPage extends Page implements HasForms
                                     ->mapWithKeys(fn (Quota $q): array => [
                                         $q->id => implode(' — ', array_filter([
                                             $q->quotaType?->name,
-                                            $q->period_start?->format('d/m/Y') . ' – ' . $q->period_end?->format('d/m/Y'),
-                                            number_format((float) $q->amount, 2, ',', '.') . ' €',
+                                            $q->period_start?->format('d/m/Y').' – '.$q->period_end?->format('d/m/Y'),
+                                            number_format((float) $q->amount, 2, ',', '.').' €',
                                             $q->status?->label(),
                                         ])),
                                     ])
@@ -115,7 +119,7 @@ class GenerateDocumentPage extends Page implements HasForms
                         return;
                     }
 
-                    $this->js("window.location.href = '" . addslashes($url) . "'");
+                    $this->js("window.location.href = '".addslashes($url)."'");
                 }),
         ];
     }
@@ -153,7 +157,7 @@ class GenerateDocumentPage extends Page implements HasForms
 
         $params = [
             'template_id' => $state['template_id'],
-            'member_id'   => $state['member_id'],
+            'member_id' => $state['member_id'],
         ];
 
         if (! empty($state['quota_id'])) {

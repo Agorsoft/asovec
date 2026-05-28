@@ -54,7 +54,7 @@ class LabelPrintController extends Controller
 
         return response($rawPdf, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => $disposition . '; filename="' . $filename . '"',
+            'Content-Disposition' => $disposition.'; filename="'.$filename.'"',
         ]);
     }
 }

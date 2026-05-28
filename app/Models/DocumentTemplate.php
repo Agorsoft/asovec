@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\DocumentGenerationStatus;
 use App\Enums\DocumentType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -24,9 +23,9 @@ class DocumentTemplate extends Model
     ];
 
     protected $casts = [
-        'type'                  => DocumentType::class,
-        'detected_variables'    => 'array',
-        'preview_generated_at'  => 'datetime',
+        'type' => DocumentType::class,
+        'detected_variables' => 'array',
+        'preview_generated_at' => 'datetime',
     ];
 
     protected static function booted(): void
