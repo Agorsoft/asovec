@@ -34,6 +34,7 @@ return [
         'quota' => [
             'amount' => 'Importe',
             'due_date' => 'Fecha de vencimiento',
+            'paid_at' => 'Fecha de pago',
             'period_start' => 'Inicio del período',
             'period_end' => 'Fin del período',
             'status' => 'Estado',

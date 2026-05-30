@@ -18,9 +18,13 @@ class SyncDailyStatuses
         $cacheKey = 'daily_statuses_synced_'.today()->toDateString();
 
         if (! Cache::has($cacheKey)) {
-            $this->syncEventStatuses();
-            $this->syncQuotaStatuses();
-            Cache::put($cacheKey, true, now()->endOfDay());
+            try {
+                $this->syncEventStatuses();
+                $this->syncQuotaStatuses();
+                Cache::put($cacheKey, true, now()->endOfDay());
+            } catch (\Throwable) {
+                // Si la base de datos no está disponible, no interrumpir la petición
+            }
         }
 
         return $next($request);

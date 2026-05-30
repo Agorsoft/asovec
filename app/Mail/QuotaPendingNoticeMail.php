@@ -2,8 +2,10 @@
 
 namespace App\Mail;
 
+use App\Enums\EmailTemplateType;
 use App\Models\Association;
 use App\Models\Quota;
+use App\Services\Emails\EmailTemplateRenderer;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
@@ -22,19 +24,25 @@ class QuotaPendingNoticeMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(
-            subject: 'Aviso de cuota pendiente',
-        );
+        return new Envelope(subject: $this->resolvedSubject());
     }
 
     public function content(): Content
     {
         $quota = $this->quota;
+        $rendered = $this->renderTemplate();
+
+        if ($rendered !== null) {
+            return new Content(
+                view: 'emails.template-body',
+                with: ['bodyHtml' => $rendered['body_html']],
+            );
+        }
 
         return new Content(
             view: 'emails.quota-pending-notice',
             with: [
-                'memberName' => $quota->member?->full_name ?? '-',
+                'memberName' => mb_convert_case($quota->member?->full_name ?? '-', MB_CASE_TITLE, 'UTF-8'),
                 'quotaTypeName' => $quota->quotaType?->name ?? 'Cuota de socio',
                 'periodStart' => $quota->period_start?->format('d/m/Y') ?? '-',
                 'periodEnd' => $quota->period_end?->format('d/m/Y') ?? '-',
@@ -57,5 +65,19 @@ class QuotaPendingNoticeMail extends Mailable
             Attachment::fromData(fn (): string => $this->pdfBytes, $filename)
                 ->withMime('application/pdf'),
         ];
+    }
+
+    /** @return array{subject: string, body_html: string}|null */
+    private function renderTemplate(): ?array
+    {
+        return app(EmailTemplateRenderer::class)->renderActive(
+            EmailTemplateType::QuotaPending,
+            ['member' => $this->quota->member, 'quota' => $this->quota]
+        );
+    }
+
+    private function resolvedSubject(): string
+    {
+        return $this->renderTemplate()['subject'] ?? 'Aviso de cuota pendiente';
     }
 }

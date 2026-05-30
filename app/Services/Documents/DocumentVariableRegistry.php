@@ -101,6 +101,7 @@ class DocumentVariableRegistry
         $vars = [
             'quota.amount' => __('documents.variables.quota.amount'),
             'quota.due_date' => __('documents.variables.quota.due_date'),
+            'quota.paid_at' => __('documents.variables.quota.paid_at'),
             'quota.period_start' => __('documents.variables.quota.period_start'),
             'quota.period_end' => __('documents.variables.quota.period_end'),
             'quota.status' => __('documents.variables.quota.status'),
@@ -118,8 +119,10 @@ class DocumentVariableRegistry
                 return match ($field) {
                     'amount' => number_format((float) $quota->amount, 2, ',', '.').' €',
                     'due_date' => $quota->due_date ? Carbon::parse($quota->due_date)->format('d/m/Y') : '',
+                    'paid_at' => $quota->paid_at ? Carbon::parse($quota->paid_at)->format('d/m/Y') : '',
                     'period_start' => $quota->period_start ? Carbon::parse($quota->period_start)->format('d/m/Y') : '',
                     'period_end' => $quota->period_end ? Carbon::parse($quota->period_end)->format('d/m/Y') : '',
+                    'status' => $quota->status instanceof \BackedEnum ? $quota->status->value : (string) ($quota->status ?? ''),
                     default => (string) ($quota->{$field} ?? ''),
                 };
             });

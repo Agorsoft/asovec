@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\DocumentTemplates;
 
+use App\Filament\Clusters\Plantillas\PlantillasCluster;
 use App\Filament\Resources\DocumentTemplates\Pages\CreateDocumentTemplate;
 use App\Filament\Resources\DocumentTemplates\Pages\EditDocumentTemplate;
 use App\Filament\Resources\DocumentTemplates\Pages\ListDocumentTemplates;
@@ -16,11 +17,12 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
-use UnitEnum;
 
 class DocumentTemplateResource extends Resource
 {
     protected static ?string $model = DocumentTemplate::class;
+
+    protected static ?string $cluster = PlantillasCluster::class;
 
     // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
     protected static ?string $modelLabel = 'Plantilla de documento';
@@ -29,9 +31,7 @@ class DocumentTemplateResource extends Resource
 
     protected static ?string $navigationLabel = 'Plantillas de documentos';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Configuración';
-
-    protected static ?int $navigationSort = 25;
+    protected static ?int $navigationSort = 20;
 
     public static function form(Schema $schema): Schema
     {

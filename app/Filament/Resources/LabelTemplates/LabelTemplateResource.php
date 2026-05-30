@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\LabelTemplates;
 
+use App\Filament\Clusters\Plantillas\PlantillasCluster;
 use App\Filament\Resources\LabelTemplates\Pages\CreateLabelTemplate;
 use App\Filament\Resources\LabelTemplates\Pages\EditLabelTemplate;
 use App\Filament\Resources\LabelTemplates\Pages\ListLabelTemplates;
@@ -17,11 +18,12 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
-use UnitEnum;
 
 class LabelTemplateResource extends Resource
 {
     protected static ?string $model = LabelTemplate::class;
+
+    protected static ?string $cluster = PlantillasCluster::class;
 
     // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTag;
     protected static ?string $modelLabel = 'Plantilla de etiquetas';
@@ -30,9 +32,7 @@ class LabelTemplateResource extends Resource
 
     protected static ?string $navigationLabel = 'Plantillas de etiquetas';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Configuración';
-
-    protected static ?int $navigationSort = 20;
+    protected static ?int $navigationSort = 10;
 
     public static function form(Schema $schema): Schema
     {

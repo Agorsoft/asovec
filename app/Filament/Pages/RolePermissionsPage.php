@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Enums\UserType;
+use App\Filament\Clusters\Usuarios\UsuariosCluster;
 use App\Models\Association;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -17,19 +18,18 @@ use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Facades\Auth;
-use UnitEnum;
 
 class RolePermissionsPage extends Page implements HasForms
 {
     use InteractsWithForms;
+
+    protected static ?string $cluster = UsuariosCluster::class;
 
     // protected static BackedEnum|string|null $navigationIcon = Heroicon::OutlinedShieldCheck;
 
     protected static ?string $navigationLabel = 'Permisos por rol';
 
     protected static ?string $title = 'Permisos por rol';
-
-    protected static UnitEnum|string|null $navigationGroup = 'Configuración';
 
     protected static ?int $navigationSort = 20;
 

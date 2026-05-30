@@ -261,3 +261,51 @@ test('si el socio activo tiene cuota actual pagada no puede pasar a pendiente, p
         ->and($quota->transactions()->where('type', TransactionType::Gasto->value)->exists())->toBeFalse()
         ->and($quota->transactions()->where('type', TransactionType::Ingreso->value)->count())->toBe($incomeCountBefore);
 });
+
+test('al dar de baja a un socio pendiente se cancela su cuota pendiente', function () {
+    $this->actingAs(User::factory()->create(['is_admin' => true]));
+
+    Association::factory()->create([
+        'payment_methods' => [PaymentMethod::Transferencia],
+    ]);
+
+    $quotaType = QuotaType::query()->create([
+        'name' => 'Cuota mensual',
+        'period_type' => 'Mensual',
+        'period_reference_date' => now()->toDateString(),
+        'default_amount' => 15.0,
+        'grace_days' => 15,
+        'align_period_start' => false,
+    ]);
+
+    $member = Member::query()->create([
+        'first_name' => 'Luis',
+        'last_name' => 'Mora',
+        'status' => MemberStatus::Pendiente->value,
+        'payment_method_id' => PaymentMethod::Transferencia->value,
+    ]);
+
+    $quota = Quota::query()->create([
+        'member_id' => $member->id,
+        'quota_type_id' => $quotaType->id,
+        'period_start' => now()->startOfMonth()->toDateString(),
+        'period_end' => now()->endOfMonth()->toDateString(),
+        'due_date' => now()->endOfMonth()->toDateString(),
+        'amount' => 15.0,
+        'status' => QuotaStatus::Pendiente->value,
+    ]);
+
+    Livewire::test(EditMember::class, ['record' => $member->id])
+        ->fillForm([
+            'status' => MemberStatus::Baja->value,
+            'left_at' => now()->toDateString(),
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $member->refresh();
+    $quota->refresh();
+
+    expect($member->status)->toEqual(MemberStatus::Baja)
+        ->and($quota->status)->toEqual(QuotaStatus::Cancelada);
+});

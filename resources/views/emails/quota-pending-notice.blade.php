@@ -5,7 +5,7 @@
     <title>Aviso de cuota pendiente</title>
 </head>
 <body>
-    <p>Estimado/a {{ $memberName }},</p>
+    <p>Estimado/a {{ mb_convert_case($memberName, MB_CASE_TITLE, 'UTF-8') }},</p>
 
     <p>Le comunicamos que tiene una cuota pendiente de pago correspondiente a:</p>
 

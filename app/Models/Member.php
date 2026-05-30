@@ -19,6 +19,21 @@ class Member extends Model
 
     protected $table = 'members';
 
+    protected static function booted(): void
+    {
+        static::updated(function (self $member): void {
+            if (
+                $member->wasChanged('status')
+                && $member->status === MemberStatus::Baja
+                && $member->getRawOriginal('status') === MemberStatus::Pendiente->value
+            ) {
+                $member->quotas()
+                    ->where('status', QuotaStatus::Pendiente->value)
+                    ->update(['status' => QuotaStatus::Cancelada->value]);
+            }
+        });
+    }
+
     protected $attributes = [
         'gender' => Gender::NoDefinido,
         'member_type' => MemberType::Socio,

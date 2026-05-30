@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Quotas\Tables;
 use App\Enums\PaymentMethod;
 use App\Enums\PdfEngine;
 use App\Enums\QuotaStatus;
+use App\Jobs\SendQuotaNoticesJob;
 use App\Mail\QuotaMemberReceiptMail;
 use App\Mail\QuotaPendingNoticeMail;
 use App\Models\Association;
@@ -14,6 +15,7 @@ use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -120,6 +122,103 @@ class QuotasTable
                             'Content-Type' => 'text/csv; charset=utf-8',
                         ]);
                     }),
+                ActionGroup::make([
+                    Action::make('sendPendingNotices')
+                        ->label('Avisos: cuotas pendientes')
+                        ->icon('heroicon-o-clock')
+                        ->color('warning')
+                        ->visible(fn (): bool => (bool) Association::query()->value('use_email'))
+                        ->form([
+                            CheckboxList::make('quota_ids')
+                                ->label('Seleccionar destinatarios')
+                                ->options(fn (): array => Quota::where('status', QuotaStatus::Pendiente->value)
+                                    ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', true))
+                                    ->with('member')
+                                    ->get()
+                                    ->mapWithKeys(fn (Quota $q) => [$q->id => trim("{$q->member?->last_name}, {$q->member?->first_name}")." <{$q->member?->email}>"])
+                                    ->toArray()),
+                            Checkbox::make('all')->label('Seleccionar todos'),
+                        ])
+                        ->modalHeading('Enviar avisos de cuota pendiente')
+                        ->modalWidth('xl')
+                        ->action(function (array $data) {
+                            $all = (bool) ($data['all'] ?? false);
+                            $selected = $data['quota_ids'] ?? [];
+
+                            if ($all) {
+                                $count = Quota::where('status', QuotaStatus::Pendiente->value)
+                                    ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', true))
+                                    ->count();
+                            } else {
+                                $count = Quota::whereIn('id', $selected)
+                                    ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', true))
+                                    ->where('status', QuotaStatus::Pendiente->value)
+                                    ->count();
+                            }
+
+                            if ($count > 20) {
+                                SendQuotaNoticesJob::dispatch($all ? null : $selected, QuotaStatus::Pendiente->value);
+
+                                Notification::make()->success()->title('Envio en background')->body("El envío de {$count} emails se ha encolado y se procesará automáticamente")->send();
+
+                                return null;
+                            }
+
+                            static::sendBulkNotices(QuotaStatus::Pendiente, $all ? null : $selected);
+
+                            return null;
+                        }),
+                    Action::make('sendExpiredNotices')
+                        ->label('Avisos: cuotas vencidas')
+                        ->icon('heroicon-o-exclamation-circle')
+                        ->color('danger')
+                        ->visible(fn (): bool => (bool) Association::query()->value('use_email'))
+                        ->form([
+                            CheckboxList::make('quota_ids')
+                                ->label('Seleccionar destinatarios')
+                                ->options(fn (): array => Quota::where('status', QuotaStatus::Vencida->value)
+                                    ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', true))
+                                    ->with('member')
+                                    ->get()
+                                    ->mapWithKeys(fn (Quota $q) => [$q->id => trim("{$q->member?->last_name}, {$q->member?->first_name}")." <{$q->member?->email}>"])
+                                    ->toArray()),
+                            Checkbox::make('all')->label('Seleccionar todos'),
+                        ])
+                        ->modalHeading('Enviar avisos de cuota vencida')
+                        ->modalWidth('xl')
+                        ->action(function (array $data) {
+                            $all = (bool) ($data['all'] ?? false);
+                            $selected = $data['quota_ids'] ?? [];
+
+                            if ($all) {
+                                $count = Quota::where('status', QuotaStatus::Vencida->value)
+                                    ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', true))
+                                    ->count();
+                            } else {
+                                $count = Quota::whereIn('id', $selected)
+                                    ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', true))
+                                    ->where('status', QuotaStatus::Vencida->value)
+                                    ->count();
+                            }
+
+                            if ($count > 20) {
+                                SendQuotaNoticesJob::dispatch($all ? null : $selected, QuotaStatus::Vencida->value);
+
+                                Notification::make()->success()->title('Envio en background')->body("El envío de {$count} emails se ha encolado y se procesará automáticamente")->send();
+
+                                return null;
+                            }
+
+                            static::sendBulkNotices(QuotaStatus::Vencida, $all ? null : $selected);
+
+                            return null;
+                        }),
+                ])
+                    ->label('Enviar avisos')
+                    ->icon('heroicon-o-envelope-open')
+                    ->color('info')
+                    ->button()
+                    ->visible(fn (): bool => (bool) Association::query()->value('use_email')),
             ])
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->whereIn('status', [
                 QuotaStatus::Pendiente->value,
@@ -382,5 +481,84 @@ class QuotasTable
                         }),
                 ]),
             ]);
+    }
+
+    private static function sendBulkNotices(QuotaStatus $status, ?array $quotaIds = null): void
+    {
+        $association = Association::firstOrFail();
+
+        Config::set('mail.mailers.assoc_dynamic', [
+            'transport' => $association->mail_mailer ?? 'smtp',
+            'host' => $association->mail_host,
+            'port' => $association->mail_port,
+            'encryption' => $association->mail_encryption,
+            'username' => $association->mail_username,
+            'password' => $association->mail_password,
+            'from' => [
+                'address' => (string) ($association->mail_from_address ?? $association->email),
+                'name' => (string) ($association->mail_from_name ?? $association->name),
+            ],
+        ]);
+        Mail::purge('assoc_dynamic');
+
+        if ($quotaIds === null) {
+            $quotas = Quota::where('status', $status->value)
+                ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', true))
+                ->with(['member', 'quotaType'])
+                ->get();
+        } else {
+            $quotas = Quota::whereIn('id', $quotaIds)
+                ->with(['member', 'quotaType'])
+                ->get()
+                ->filter(fn (Quota $q) => filled($q->member?->email) && (bool) $q->member?->email_opt_in && $q->status->value === $status->value)
+                ->values();
+        }
+
+        if ($quotas->isEmpty()) {
+            Notification::make()
+                ->warning()
+                ->title('Sin destinatarios')
+                ->body('No hay socios con cuota '.mb_strtolower($status->value).' y email configurado.')
+                ->send();
+
+            return;
+        }
+
+        $pdfService = app(PdfService::class);
+        $noticeDate = now()->format('d/m/Y');
+        $sent = 0;
+        $errors = 0;
+
+        foreach ($quotas as $quota) {
+            try {
+                $pdfBytes = $pdfService->renderView('documents.quotas.QuotaPendingNoticeA5', [
+                    'quota' => $quota,
+                    'association' => $association,
+                    'noticeDate' => $noticeDate,
+                ], PdfEngine::Dompdf);
+
+                Mail::mailer('assoc_dynamic')
+                    ->to((string) $quota->member->email, $quota->member->full_name ?? '-')
+                    ->send(new QuotaPendingNoticeMail($quota, $pdfBytes, $noticeDate));
+
+                $sent++;
+            } catch (\Throwable) {
+                $errors++;
+            }
+        }
+
+        if ($errors > 0) {
+            Notification::make()
+                ->warning()
+                ->title("Enviados {$sent} de ".($sent + $errors))
+                ->body("{$errors} envío(s) no pudieron completarse.")
+                ->send();
+        } else {
+            Notification::make()
+                ->success()
+                ->title("Avisos enviados: {$sent}")
+                ->body('Se han enviado los avisos de cuota '.mb_strtolower($status->value).'.')
+                ->send();
+        }
     }
 }

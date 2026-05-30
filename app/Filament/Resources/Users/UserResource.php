@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users;
 
+use App\Filament\Clusters\Usuarios\UsuariosCluster;
 use App\Filament\Resources\Users\Pages\CreateUser;
 use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
@@ -17,11 +18,12 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
-use UnitEnum;
 
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
+
+    protected static ?string $cluster = UsuariosCluster::class;
 
     // protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
@@ -30,8 +32,6 @@ class UserResource extends Resource
     protected static ?string $pluralModelLabel = 'Usuarios';
 
     protected static ?string $navigationLabel = 'Usuarios';
-
-    protected static string|UnitEnum|null $navigationGroup = 'Configuración';
 
     protected static ?int $navigationSort = 10;
 

@@ -5,7 +5,7 @@
     <title>Recibo de cuota de socio</title>
 </head>
 <body>
-    <p>Estimado/a {{ $memberName }},</p>
+    <p>Estimado/a {{ mb_convert_case($memberName, MB_CASE_TITLE, 'UTF-8') }},</p>
 
     <p>Le enviamos su copia del recibo de cuota de socio correspondiente a:</p>
 
