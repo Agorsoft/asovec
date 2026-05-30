@@ -17,6 +17,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -26,6 +27,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\HtmlString;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class QuotasTable
@@ -129,6 +131,29 @@ class QuotasTable
                         ->color('warning')
                         ->visible(fn (): bool => (bool) Association::query()->value('use_email'))
                         ->form([
+                            Placeholder::make('recipients_info')
+                                ->label('Info Destinatarios')
+                                ->content(function (): HtmlString {
+                                    $eligible = Quota::where('status', QuotaStatus::Pendiente->value)
+                                        ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', true))
+                                        ->count();
+                                    $optedOut = Quota::where('status', QuotaStatus::Pendiente->value)
+                                        ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', false))
+                                        ->count();
+                                    $noEmail = Quota::where('status', QuotaStatus::Pendiente->value)
+                                        ->whereHas('member', fn (Builder $q) => $q->whereNull('email'))
+                                        ->count();
+
+                                    $lines = ["<strong>{$eligible} socio(s)</strong> recibirán el aviso."];
+                                    if ($optedOut > 0) {
+                                        $lines[] = "<span class=\"text-warning-600\">{$optedOut} socio(s) han rechazado emails (Comunicación) y serán omitidos.</span>";
+                                    }
+                                    if ($noEmail > 0) {
+                                        $lines[] = "<span class=\"text-warning-600\">{$noEmail} socio(s) no tienen email configurado y serán omitidos.</span>";
+                                    }
+
+                                    return new HtmlString(implode('<br>', $lines));
+                                }),
                             CheckboxList::make('quota_ids')
                                 ->label('Seleccionar destinatarios')
                                 ->options(fn (): array => Quota::where('status', QuotaStatus::Pendiente->value)
@@ -146,20 +171,60 @@ class QuotasTable
                             $selected = $data['quota_ids'] ?? [];
 
                             if ($all) {
-                                $count = Quota::where('status', QuotaStatus::Pendiente->value)
+                                $eligibleCount = Quota::where('status', QuotaStatus::Pendiente->value)
                                     ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', true))
                                     ->count();
+
+                                $optedOutCount = Quota::where('status', QuotaStatus::Pendiente->value)
+                                    ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', false))
+                                    ->count();
+
+                                $noEmailCount = Quota::where('status', QuotaStatus::Pendiente->value)
+                                    ->whereHas('member', fn (Builder $q) => $q->whereNull('email'))
+                                    ->count();
                             } else {
-                                $count = Quota::whereIn('id', $selected)
+                                $eligibleCount = Quota::whereIn('id', $selected)
                                     ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', true))
+                                    ->where('status', QuotaStatus::Pendiente->value)
+                                    ->count();
+
+                                $optedOutCount = Quota::whereIn('id', $selected)
+                                    ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', false))
+                                    ->where('status', QuotaStatus::Pendiente->value)
+                                    ->count();
+
+                                $noEmailCount = Quota::whereIn('id', $selected)
+                                    ->whereHas('member', fn (Builder $q) => $q->whereNull('email'))
                                     ->where('status', QuotaStatus::Pendiente->value)
                                     ->count();
                             }
 
-                            if ($count > 20) {
+                            $skipMessages = [];
+                            if ($optedOutCount > 0) {
+                                $skipMessages[] = "{$optedOutCount} socio(s) han rechazado recibir emails (Comunicación) y no serán contactados.";
+                            }
+                            if ($noEmailCount > 0) {
+                                $skipMessages[] = "{$noEmailCount} socio(s) no tienen email configurado y no serán contactados.";
+                            }
+
+                            if (count($skipMessages) > 0) {
+                                Notification::make()
+                                    ->warning()
+                                    ->title('Algunos socios no recibirán el email')
+                                    ->body(implode(' ', $skipMessages))
+                                    ->send();
+                            }
+
+                            if ($eligibleCount > 20) {
                                 SendQuotaNoticesJob::dispatch($all ? null : $selected, QuotaStatus::Pendiente->value);
 
-                                Notification::make()->success()->title('Envio en background')->body("El envío de {$count} emails se ha encolado y se procesará automáticamente")->send();
+                                Notification::make()->success()->title('Envio en background')->body("El envío de {$eligibleCount} emails se ha encolado y se procesará automáticamente")->send();
+
+                                return null;
+                            }
+
+                            if ($eligibleCount === 0) {
+                                Notification::make()->warning()->title('Sin destinatarios')->body('No hay socios con email y opt-in para este conjunto.')->send();
 
                                 return null;
                             }
@@ -174,6 +239,29 @@ class QuotasTable
                         ->color('danger')
                         ->visible(fn (): bool => (bool) Association::query()->value('use_email'))
                         ->form([
+                            Placeholder::make('recipients_info')
+                                ->label('Info Destinatarios')
+                                ->content(function (): HtmlString {
+                                    $eligible = Quota::where('status', QuotaStatus::Vencida->value)
+                                        ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', true))
+                                        ->count();
+                                    $optedOut = Quota::where('status', QuotaStatus::Vencida->value)
+                                        ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', false))
+                                        ->count();
+                                    $noEmail = Quota::where('status', QuotaStatus::Vencida->value)
+                                        ->whereHas('member', fn (Builder $q) => $q->whereNull('email'))
+                                        ->count();
+
+                                    $lines = ["<strong>{$eligible} socio(s)</strong> recibirán el aviso."];
+                                    if ($optedOut > 0) {
+                                        $lines[] = "<span class=\"text-warning-600\">{$optedOut} socio(s) han rechazado emails (Comunicación) y serán omitidos.</span>";
+                                    }
+                                    if ($noEmail > 0) {
+                                        $lines[] = "<span class=\"text-warning-600\">{$noEmail} socio(s) no tienen email configurado y serán omitidos.</span>";
+                                    }
+
+                                    return new HtmlString(implode('<br>', $lines));
+                                }),
                             CheckboxList::make('quota_ids')
                                 ->label('Seleccionar destinatarios')
                                 ->options(fn (): array => Quota::where('status', QuotaStatus::Vencida->value)
@@ -191,20 +279,60 @@ class QuotasTable
                             $selected = $data['quota_ids'] ?? [];
 
                             if ($all) {
-                                $count = Quota::where('status', QuotaStatus::Vencida->value)
+                                $eligibleCount = Quota::where('status', QuotaStatus::Vencida->value)
                                     ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', true))
                                     ->count();
+
+                                $optedOutCount = Quota::where('status', QuotaStatus::Vencida->value)
+                                    ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', false))
+                                    ->count();
+
+                                $noEmailCount = Quota::where('status', QuotaStatus::Vencida->value)
+                                    ->whereHas('member', fn (Builder $q) => $q->whereNull('email'))
+                                    ->count();
                             } else {
-                                $count = Quota::whereIn('id', $selected)
+                                $eligibleCount = Quota::whereIn('id', $selected)
                                     ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', true))
+                                    ->where('status', QuotaStatus::Vencida->value)
+                                    ->count();
+
+                                $optedOutCount = Quota::whereIn('id', $selected)
+                                    ->whereHas('member', fn (Builder $q) => $q->whereNotNull('email')->where('email_opt_in', false))
+                                    ->where('status', QuotaStatus::Vencida->value)
+                                    ->count();
+
+                                $noEmailCount = Quota::whereIn('id', $selected)
+                                    ->whereHas('member', fn (Builder $q) => $q->whereNull('email'))
                                     ->where('status', QuotaStatus::Vencida->value)
                                     ->count();
                             }
 
-                            if ($count > 20) {
+                            $skipMessages = [];
+                            if ($optedOutCount > 0) {
+                                $skipMessages[] = "{$optedOutCount} socio(s) han rechazado recibir emails (Comunicación) y no serán contactados.";
+                            }
+                            if ($noEmailCount > 0) {
+                                $skipMessages[] = "{$noEmailCount} socio(s) no tienen email configurado y no serán contactados.";
+                            }
+
+                            if (count($skipMessages) > 0) {
+                                Notification::make()
+                                    ->warning()
+                                    ->title('Algunos socios no recibirán el email')
+                                    ->body(implode(' ', $skipMessages))
+                                    ->send();
+                            }
+
+                            if ($eligibleCount > 20) {
                                 SendQuotaNoticesJob::dispatch($all ? null : $selected, QuotaStatus::Vencida->value);
 
-                                Notification::make()->success()->title('Envio en background')->body("El envío de {$count} emails se ha encolado y se procesará automáticamente")->send();
+                                Notification::make()->success()->title('Envio en background')->body("El envío de {$eligibleCount} emails se ha encolado y se procesará automáticamente")->send();
+
+                                return null;
+                            }
+
+                            if ($eligibleCount === 0) {
+                                Notification::make()->warning()->title('Sin destinatarios')->body('No hay socios con email y opt-in para este conjunto.')->send();
 
                                 return null;
                             }

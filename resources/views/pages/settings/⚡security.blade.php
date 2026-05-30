@@ -31,12 +31,14 @@ new #[Title('Security settings')] class extends Component {
     {
         $this->canManageTwoFactor = Features::canManageTwoFactorAuthentication();
 
-        if ($this->canManageTwoFactor) {
-            if (Fortify::confirmsTwoFactorAuthentication() && is_null(auth()->user()->two_factor_confirmed_at)) {
-                $disableTwoFactorAuthentication(auth()->user());
+            if ($this->canManageTwoFactor) {
+            if (Fortify::confirmsTwoFactorAuthentication() && is_null(Auth::user()?->two_factor_confirmed_at)) {
+                $disableTwoFactorAuthentication(Auth::user());
             }
 
-            $this->twoFactorEnabled = auth()->user()->hasEnabledTwoFactorAuthentication();
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            $this->twoFactorEnabled = $user?->hasEnabledTwoFactorAuthentication() ?? false;
             $this->requiresConfirmation = Features::optionEnabled(Features::twoFactorAuthentication(), 'confirm');
         }
     }
@@ -57,7 +59,9 @@ new #[Title('Security settings')] class extends Component {
             throw $e;
         }
 
-        Auth::user()->update([
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+        $user?->update([
             'password' => $validated['password'],
         ]);
 
@@ -80,7 +84,7 @@ new #[Title('Security settings')] class extends Component {
      */
     public function disable(DisableTwoFactorAuthentication $disableTwoFactorAuthentication): void
     {
-        $disableTwoFactorAuthentication(auth()->user());
+        $disableTwoFactorAuthentication(Auth::user());
 
         $this->twoFactorEnabled = false;
     }
