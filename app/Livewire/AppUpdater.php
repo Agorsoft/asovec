@@ -100,6 +100,10 @@ class AppUpdater extends Component
             $this->addLog('Error al despachar el job: '.$e->getMessage());
             $this->status = 'failed';
         }
+
+        // Con QUEUE_CONNECTION=sync el job ya terminó. Leer log final ahora
+        // para evitar depender del polling y reducir tiempo en estado 'running'.
+        $this->syncStatusFromLog();
     }
 
     public function startFromUrl(): void
@@ -115,31 +119,46 @@ class AppUpdater extends Component
             $this->addLog('Error al despachar el job: '.$e->getMessage());
             $this->status = 'failed';
         }
+
+        $this->syncStatusFromLog();
     }
 
     public function pollLogs(): void
     {
+        if (! $this->runId || in_array($this->status, ['completed', 'failed'])) {
+            return;
+        }
+
+        $this->syncStatusFromLog();
+    }
+
+    protected function syncStatusFromLog(): void
+    {
         if (! $this->runId) {
             return;
         }
+
         $logPath = storage_path('app/updates/runs/run_'.$this->runId.'/log.txt');
-        if (file_exists($logPath)) {
-            $content = file_get_contents($logPath);
-            $this->logs = explode("\n", trim($content));
+        if (! file_exists($logPath)) {
+            return;
+        }
 
-            $lc = strtolower($content);
+        $content = @file_get_contents($logPath);
+        if ($content === false) {
+            return;
+        }
 
-            if (str_contains($lc, 'actualización aplicada con éxito')) {
-                $this->status = 'completed';
+        $this->logs = explode("\n", trim($content));
+        $lc = strtolower($content);
 
-                return;
-            }
-
-            if (str_contains($lc, 'error durante la actualización') || str_contains($lc, 'comando falló') || str_contains($lc, 'falló con código')) {
-                $this->status = 'failed';
-
-                return;
-            }
+        if (str_contains($lc, 'actualización aplicada con éxito')) {
+            $this->status = 'completed';
+        } elseif (
+            str_contains($lc, 'error durante la actualización') ||
+            str_contains($lc, 'comando falló') ||
+            str_contains($lc, 'falló con código')
+        ) {
+            $this->status = 'failed';
         }
     }
 

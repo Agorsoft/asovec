@@ -112,9 +112,9 @@ class AppUpdate extends Command
 
                 $this->info('Ejecutando migraciones...');
                 $log('Ejecutando migraciones...');
-                $this->callArtisan('down', [], $log);
+                // No se usa artisan down/up: causaría 503 en el polling de Livewire.
+                // --force es suficiente para entornos de producción.
                 $this->callArtisan('migrate', ['--force' => true], $log);
-                $this->callArtisan('up', [], $log);
             }
 
             // 6) Limpiar y regenerar caches (no crítico: un fallo aquí no revierte la actualización)
