@@ -45,11 +45,6 @@ class LabelTemplatesTable
                     ->label('Fuente')
                     ->formatStateUsing(fn ($state) => "{$state} pt")
                     ->alignCenter(),
-
-                TextColumn::make('updated_at')
-                    ->label('Actualizado')
-                    ->dateTime('d/m/Y')
-                    ->sortable(),
             ])
             ->filters([])
             ->recordActions([

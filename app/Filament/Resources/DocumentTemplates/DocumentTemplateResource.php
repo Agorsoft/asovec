@@ -60,21 +60,21 @@ class DocumentTemplateResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return User::current() !== null;
+        return User::current()?->hasPermission('documents.view') ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return User::current()?->hasPermission('documents.manage') ?? false;
+        return User::current()?->hasPermission('documents.create') ?? false;
     }
 
     public static function canEdit(Model $record): bool
     {
-        return User::current()?->hasPermission('documents.manage') ?? false;
+        return User::current()?->hasPermission('documents.edit') ?? false;
     }
 
     public static function canDelete(Model $record): bool
     {
-        return User::current()?->hasPermission('documents.manage') ?? false;
+        return User::current()?->hasPermission('documents.edit') ?? false;
     }
 }

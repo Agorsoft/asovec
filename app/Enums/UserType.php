@@ -55,10 +55,19 @@ enum UserType: string
                 'transactions.edit' => 'Editar',
             ],
             'Etiquetas' => [
-                'labels.manage' => 'Crear y editar plantillas',
+                'labels.view' => 'Ver',
+                'labels.create' => 'Crear',
+                'labels.edit' => 'Editar',
             ],
             'Documentos' => [
-                'documents.manage' => 'Crear y editar plantillas',
+                'documents.view' => 'Ver',
+                'documents.create' => 'Crear',
+                'documents.edit' => 'Editar',
+            ],
+            'Plantillas Emails' => [
+                'email_templates.view' => 'Ver',
+                'email_templates.create' => 'Crear',
+                'email_templates.edit' => 'Editar',
             ],
         ];
     }

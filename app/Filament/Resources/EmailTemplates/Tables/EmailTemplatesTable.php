@@ -3,9 +3,10 @@
 namespace App\Filament\Resources\EmailTemplates\Tables;
 
 use App\Enums\EmailTemplateType;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\ActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -46,12 +47,15 @@ class EmailTemplatesTable
                     ->options(EmailTemplateType::class),
             ])
             ->recordActions([
-                EditAction::make(),
+                ActionGroup::make([
+                    ViewAction::make()
+                        ->label('Ver'),
+                    EditAction::make()
+                        ->label('Editar'),
+                    DeleteAction::make(),
+                ]),
             ])
             ->toolbarActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
             ]);
     }
 }

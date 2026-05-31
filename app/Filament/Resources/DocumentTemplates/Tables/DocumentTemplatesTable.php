@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\DocumentTemplates\Tables;
 
 use App\Enums\DocumentType;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
@@ -45,11 +46,13 @@ class DocumentTemplatesTable
 
             ])
             ->recordActions([
-                ViewAction::make()
-                    ->label('Ver'),
-                EditAction::make()
-                    ->label('Editar'),
-                DeleteAction::make(),
+                ActionGroup::make([
+                    ViewAction::make()
+                        ->label('Ver'),
+                    EditAction::make()
+                        ->label('Editar'),
+                    DeleteAction::make(),
+                ]),
             ])
             ->defaultSort('name');
     }

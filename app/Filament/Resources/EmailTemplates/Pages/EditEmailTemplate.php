@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\EmailTemplates\Pages;
 
 use App\Filament\Resources\EmailTemplates\EmailTemplateResource;
-use App\Filament\Resources\LabelTemplates\LabelTemplateResource;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
@@ -18,7 +17,7 @@ class EditEmailTemplate extends EditRecord
             Action::make('backToListing')
                 ->label('Volver al listado')
                 ->icon('heroicon-o-arrow-left')
-                ->url(fn () => LabelTemplateResource::getUrl('index'))
+                ->url(fn () => EmailTemplateResource::getUrl('index'))
                 ->color('gray'),
             DeleteAction::make(),
         ];

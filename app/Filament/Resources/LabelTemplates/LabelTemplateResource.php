@@ -66,21 +66,21 @@ class LabelTemplateResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return User::current() !== null;
+        return User::current()?->hasPermission('labels.view') ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return User::current()?->hasPermission('labels.manage') ?? false;
+        return User::current()?->hasPermission('labels.create') ?? false;
     }
 
     public static function canEdit(Model $record): bool
     {
-        return User::current()?->hasPermission('labels.manage') ?? false;
+        return User::current()?->hasPermission('labels.edit') ?? false;
     }
 
     public static function canDelete(Model $record): bool
     {
-        return User::current()?->hasPermission('labels.manage') ?? false;
+        return User::current()?->hasPermission('labels.edit') ?? false;
     }
 }
