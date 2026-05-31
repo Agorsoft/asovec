@@ -117,11 +117,19 @@ class AppUpdate extends Command
                 $this->callArtisan('up', [], $log);
             }
 
-            // 6) Limpiar y regenerar caches
+            // 6) Limpiar y regenerar caches (no crítico: un fallo aquí no revierte la actualización)
             $this->info('Limpiando y regenerando caches...');
             $log('Limpiando y regenerando caches...');
-            $this->callArtisan('optimize:clear', [], $log);
-            $this->callArtisan('optimize', [], $log);
+            try {
+                $this->callArtisan('optimize:clear', [], $log);
+            } catch (\Throwable $eClear) {
+                $log('AVISO: optimize:clear falló (no crítico): '.$eClear->getMessage());
+            }
+            try {
+                $this->callArtisan('optimize', [], $log);
+            } catch (\Throwable $eOpt) {
+                $log('AVISO: optimize falló (no crítico): '.$eOpt->getMessage());
+            }
 
             // 7) limpieza de temporales y rotación de backups
             $this->rrmdir($tmpDir);
