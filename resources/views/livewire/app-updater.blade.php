@@ -40,12 +40,65 @@
         <span class="px-2 py-1 rounded text-sm {{ $badgeClass }}">{{ $status }}</span>
     </div>
 
-    <div wire:poll.1000ms="pollLogs">
+    <div id="app-updater-logs" data-runid="{{ $runId ?? '' }}" class="" x-data>
         <div class="flex items-center justify-between">
             <strong class="text-sm">Logs:</strong>
             <span class="text-xs text-slate-500">Actualizando cada 1s</span>
         </div>
-        <pre class="mt-2 bg-slate-50 border rounded-md p-4 text-xs leading-5 max-h-72 overflow-auto">@foreach($logs as $l){{ $l }}
+        <pre id="app-updater-logs-pre" class="mt-2 bg-slate-50 border rounded-md p-4 text-xs leading-5 max-h-72 overflow-auto">@foreach($logs as $l){{ $l }}
 @endforeach</pre>
     </div>
+
+    <script>
+        (function () {
+            // Manejar polling fuera de Livewire para evitar errores si el backend cambia durante actualización.
+            let intervalId = null;
+
+            function startPolling(runId) {
+                if (!runId) return;
+                if (intervalId) clearInterval(intervalId);
+                const url = '/_update-status/' + encodeURIComponent(runId);
+                async function poll() {
+                    try {
+                        const res = await fetch(url, { credentials: 'same-origin' });
+                        if (!res.ok) return;
+                        const j = await res.json();
+                        const pre = document.getElementById('app-updater-logs-pre');
+                        if (pre) {
+                            pre.textContent = (j.logs || []).join('\n');
+                        }
+                        // Si está en estado terminal, dejar de pollear
+                        if (j.status === 'completed' || j.status === 'failed') {
+                            clearInterval(intervalId);
+                            intervalId = null;
+                        }
+                    } catch (err) {
+                        // No hacer nada, el fetch puede fallar si la app cambia durante el update
+                    }
+                }
+                // Poll inmediato y luego cada 1s
+                poll();
+                intervalId = setInterval(poll, 1000);
+            }
+
+            // Arrancar si hay runId ya presente en la carga inicial
+            document.addEventListener('DOMContentLoaded', function () {
+                const container = document.getElementById('app-updater-logs');
+                if (container) {
+                    const rid = container.dataset.runid || '';
+                    if (rid) startPolling(rid);
+                }
+            });
+
+            // También reiniciar polling tras cada respuesta Livewire (cuando runId cambie tras dispatch)
+            if (window.Livewire) {
+                window.Livewire.hook('message.processed', function () {
+                    const container = document.getElementById('app-updater-logs');
+                    if (!container) return;
+                    const rid = container.dataset.runid || '';
+                    if (rid && !intervalId) startPolling(rid);
+                });
+            }
+        })();
+    </script>
 </div>

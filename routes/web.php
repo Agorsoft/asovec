@@ -56,6 +56,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('quotas.receipt.show');
     Route::get('etiquetas/imprimir', [LabelPrintController::class, 'generate'])
         ->name('labels.print.generate');
+    // Endpoint seguro para que la interfaz consulte el estado/logs de una actualización
+    Route::get('_update-status/{runId}', [\App\Http\Controllers\UpdateStatusController::class, 'show'])
+        ->name('update.status');
     Route::get('documentos/plantilla/generar', DocumentTemplateGenerateController::class)
         ->name('document.template.generate');
     Route::get('ayuda/manual.pdf', HelpPdfController::class)
