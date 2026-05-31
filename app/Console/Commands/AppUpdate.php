@@ -18,6 +18,9 @@ class AppUpdate extends Command
     /** Indica si proc_open está disponible (para subprocesos de shell). */
     private bool $procOpenAvailable = false;
 
+    /** Closure para escribir líneas al log del proceso de actualización. */
+    private ?\Closure $lineToLog = null;
+
     public function handle(): int
     {
         $source = $this->argument('source');

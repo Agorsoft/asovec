@@ -1,3 +1,4 @@
+@php $errors = $errors ?? new \Illuminate\Support\ViewErrorBag; @endphp
 <div class="bg-white shadow-sm rounded-lg p-6 space-y-6">
     <h3 class="text-lg font-semibold text-sky-800">Actualizador de la aplicación</h3>
 
