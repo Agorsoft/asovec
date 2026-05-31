@@ -7,9 +7,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
-use Symfony\Component\Process\PhpExecutableFinder;
-use Symfony\Component\Process\Process;
 
 class RunAppUpdate implements ShouldQueue
 {
@@ -29,39 +28,37 @@ class RunAppUpdate implements ShouldQueue
         $this->onQueue('updates');
     }
 
-    public function handle()
+    public function handle(): void
     {
         try {
             Log::info('RunAppUpdate: iniciando actualización desde: '.$this->source.' runId: '.$this->runId);
 
-            $updatesPath = storage_path('app/updates');
-            $runDir = $updatesPath.'/runs/run_'.$this->runId;
-            if (! is_dir($runDir)) {
-                mkdir($runDir, 0755, true);
+            // Incrementar tiempo de ejecución al máximo posible para la actualización
+            if (function_exists('set_time_limit')) {
+                @set_time_limit(0);
             }
-            $logFile = $runDir.'/log.txt';
 
-            $phpFinder = new PhpExecutableFinder;
-            $phpExecutable = $phpFinder->find(false) ?: PHP_BINARY ?: 'php';
-            $phpExecutable = escapeshellarg($phpExecutable);
+            $params = [
+                'source' => $this->source,
+                '--run-id' => $this->runId,
+            ];
 
-            $cmd = sprintf('%s %s app:update %s --run-id=%s', $phpExecutable, escapeshellarg(base_path('artisan')), escapeshellarg($this->source), escapeshellarg($this->runId));
             if ($this->checksum) {
-                $cmd .= ' --checksum='.escapeshellarg($this->checksum);
+                $params['--checksum'] = $this->checksum;
             }
 
-            $process = Process::fromShellCommandline($cmd, base_path());
-            $process->setTimeout(0);
-            $process->run(function ($type, $buffer) use ($logFile) {
-                file_put_contents($logFile, $buffer, FILE_APPEND | LOCK_EX);
-            });
+            // Llamada directa vía Artisan::call (sin proc_open/subprocess)
+            // Esto hace compatible el updater con hosting compartido donde proc_open puede estar deshabilitado.
+            $exitCode = Artisan::call('app:update', $params);
 
-            $output = file_get_contents($logFile) ?: '';
+            $output = trim(Artisan::output());
             Log::info('RunAppUpdate salida: '.substr($output, 0, 10000));
-            if (! $process->isSuccessful()) {
-                Log::error('RunAppUpdate falló con código: '.$process->getExitCode());
-                throw new \RuntimeException('Proceso app:update falló con código: '.$process->getExitCode());
+
+            if ($exitCode !== 0) {
+                Log::error('RunAppUpdate falló con código: '.$exitCode);
+                throw new \RuntimeException('El proceso de actualización falló con código: '.$exitCode);
             }
+
             Log::info('RunAppUpdate completado correctamente.');
         } catch (\Throwable $e) {
             Log::error('RunAppUpdate excepción: '.$e->getMessage());

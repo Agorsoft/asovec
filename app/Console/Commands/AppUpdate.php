@@ -5,12 +5,19 @@ namespace App\Console\Commands;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Artisan;
 use Symfony\Component\Process\Process;
 
 #[Signature('app:update {source : URL o ruta local al .tar.gz o .zip} {--keep-backups=3} {--no-migrate} {--no-composer} {--checksum=} {--run-id=}')]
 #[Description('Descarga y aplica una actualización desde un tar.gz/zip en el servidor')]
 class AppUpdate extends Command
 {
+    /** Indica si rsync está disponible en el servidor. */
+    private bool $rsyncAvailable = false;
+
+    /** Indica si proc_open está disponible (para subprocesos de shell). */
+    private bool $procOpenAvailable = false;
+
     public function handle(): int
     {
         $source = $this->argument('source');
@@ -20,13 +27,15 @@ class AppUpdate extends Command
         $checksum = $this->option('checksum') ?: null;
         $runId = $this->option('run-id') ?: date('YmdHis').'_'.bin2hex(random_bytes(4));
 
+        $this->rsyncAvailable = $this->commandExists('rsync');
+        $this->procOpenAvailable = function_exists('proc_open');
+
         $basePath = base_path();
         $updatesPath = storage_path('app/updates');
         if (! is_dir($updatesPath)) {
             mkdir($updatesPath, 0755, true);
         }
 
-        $timestamp = date('YmdHis');
         $tmpDir = $updatesPath."/runs/run_{$runId}/tmp";
         $backupDir = $updatesPath."/runs/run_{$runId}/backups";
         $logFile = $updatesPath."/runs/run_{$runId}/log.txt";
@@ -46,6 +55,8 @@ class AppUpdate extends Command
         };
 
         $log = fn ($m) => ($this->lineToLog)($m);
+        $log('proc_open: '.($this->procOpenAvailable ? 'disponible' : 'no disponible'));
+        $log('rsync: '.($this->rsyncAvailable ? 'disponible' : 'no disponible, se usará copia PHP'));
 
         try {
             $this->info('Preparando actualización...');
@@ -54,26 +65,40 @@ class AppUpdate extends Command
             // 1) Obtener archivo (si es URL, descargar)
             $archivePath = $this->downloadSource($source, $updatesPath, $checksum);
 
-            // 2) Extraer
+            // 2) Extraer (soporte para .zip y .tar.gz)
             $this->info("Extrayendo {$archivePath} a {$tmpDir}...");
             $log("Extrayendo {$archivePath} a {$tmpDir}...");
-            $this->runShell('tar -xzf '.escapeshellarg($archivePath).' -C '.escapeshellarg($tmpDir), null, $log);
+            $this->extractArchive($archivePath, $tmpDir, $log);
 
-            // 3) Hacer rsync con backup
-            $this->info('Sincronizando archivos (excluyendo .env, storage, vendor, node_modules)...');
-            $log('Sincronizando archivos (excluyendo .env, storage, vendor, node_modules)...');
-            $rsyncCmd = 'rsync -a --delete '
-                ."--exclude='.env' --exclude='storage' --exclude='vendor' --exclude='node_modules' "
-                .'--backup --backup-dir='.escapeshellarg($backupDir).' '
-                .escapeshellarg(rtrim($tmpDir, '/').'/').' '.escapeshellarg($basePath.'/');
+            // Detectar directorio raíz real (GitHub añade subdirectorio reponame-branch/)
+            $srcDir = $this->detectSourceDir($tmpDir, $log);
 
-            $this->runShell($rsyncCmd, null, $log);
+            // Detectar si el ZIP ya incluye vendor/ (release precompilado)
+            $vendorInZip = is_dir($srcDir.'/vendor');
+            if ($vendorInZip) {
+                $log('vendor/ detectado en el paquete — se omitirá composer install.');
+            }
 
-            // 4) composer
-            if (! $noComposer) {
+            // 3) Sincronizar archivos (rsync si disponible, PHP recursivo si no)
+            $this->info('Sincronizando archivos (excluyendo .env, storage, node_modules)...');
+            $log('Sincronizando archivos...');
+
+            $excludes = ['.env', 'storage', 'node_modules'];
+            if (! $vendorInZip) {
+                $excludes[] = 'vendor';
+            }
+
+            $this->syncFiles($srcDir, $basePath, $excludes, $backupDir, $log);
+
+            // 4) composer (solo si vendor/ no viene en el ZIP)
+            if (! $noComposer && ! $vendorInZip) {
                 $this->info('Ejecutando composer install...');
                 $log('Ejecutando composer install...');
-                $this->runShell('composer install --no-dev --optimize-autoloader --no-interaction', $basePath, $log);
+                if ($this->procOpenAvailable && $this->commandExists('composer')) {
+                    $this->runShell('composer install --no-dev --optimize-autoloader --no-interaction', $basePath, $log);
+                } else {
+                    $log('AVISO: composer no disponible o proc_open deshabilitado. Omitiendo composer install. Asegúrese de que vendor/ está incluido en el ZIP o ejecute composer manualmente vía SSH.');
+                }
             }
 
             // 5) migrate
@@ -82,33 +107,25 @@ class AppUpdate extends Command
                 $log('Realizando dump de base de datos antes de migrar...');
                 $this->dumpDatabaseIfPossible($updatesPath."/runs/run_{$runId}/db_dump.sql", $log);
 
-                $this->info('Poniendo aplicación en mantenimiento...');
-                $log('Poniendo aplicación en mantenimiento...');
-                $this->runShell('php artisan down --no-interaction', $basePath, $log);
-
                 $this->info('Ejecutando migraciones...');
                 $log('Ejecutando migraciones...');
-                $this->runShell('php artisan migrate --force', $basePath, $log);
-
-                $this->info('Saliendo de modo mantenimiento...');
-                $log('Saliendo de modo mantenimiento...');
-                $this->runShell('php artisan up', $basePath, $log);
+                $this->callArtisan('down', [], $log);
+                $this->callArtisan('migrate', ['--force' => true], $log);
+                $this->callArtisan('up', [], $log);
             }
 
-            // 6) cache optimizations
-            $this->info('Optimizando caches...');
-            $log('Optimizando caches...');
-            $this->runShell('php artisan config:cache', $basePath, $log);
-            $this->runShell('php artisan route:cache', $basePath, $log);
-            $this->runShell('php artisan view:cache', $basePath, $log);
-            $this->runShell('php artisan queue:restart', $basePath, $log);
+            // 6) Limpiar y regenerar caches
+            $this->info('Limpiando y regenerando caches...');
+            $log('Limpiando y regenerando caches...');
+            $this->callArtisan('optimize:clear', [], $log);
+            $this->callArtisan('optimize', [], $log);
 
             // 7) limpieza de temporales y rotación de backups
             $this->rrmdir($tmpDir);
             $this->rotateBackups($backupDir, $keepBackups);
 
             $this->info('Actualización aplicada con éxito.');
-            $this->info("Backups guardados en: {$updatesPath}/backups/");
+            $log('Actualización aplicada con éxito.');
 
             return self::SUCCESS;
 
@@ -120,7 +137,7 @@ class AppUpdate extends Command
 
             if (is_dir($backupDir)) {
                 try {
-                    $this->runShell('rsync -a '.escapeshellarg($backupDir.'/').' '.escapeshellarg($basePath.'/'), null, $log);
+                    $this->phpRestoreBackup($backupDir, $basePath, $log);
                     $this->info('Rollback de archivos completado.');
                     $log('Rollback de archivos completado.');
                 } catch (\Throwable $e2) {
@@ -142,13 +159,218 @@ class AppUpdate extends Command
                 }
             }
 
-            $this->line('Para revertir manualmente, puede restaurar desde el backup con:');
-            $this->line('rsync -a '.escapeshellarg($backupDir.'/').' '.escapeshellarg($basePath.'/'));
-            $log('Rollback manual: rsync -a '.$backupDir.'/ '.$basePath.'/');
-
             return self::FAILURE;
         }
     }
+
+    /**
+     * Extrae un archivo .zip o .tar.gz al directorio destino.
+     * Usa ZipArchive (PHP nativo) para .zip, y tar para .tar.gz si está disponible.
+     */
+    protected function extractArchive(string $archivePath, string $destDir, callable $log): void
+    {
+        $lower = strtolower($archivePath);
+
+        if (str_ends_with($lower, '.zip')) {
+            if (! class_exists(\ZipArchive::class)) {
+                throw new \RuntimeException('La extensión ZipArchive de PHP no está disponible en este servidor.');
+            }
+            $zip = new \ZipArchive;
+            $result = $zip->open($archivePath);
+            if ($result !== true) {
+                throw new \RuntimeException("No se pudo abrir el ZIP (código {$result}): {$archivePath}");
+            }
+            $zip->extractTo($destDir);
+            $zip->close();
+            $log('ZIP extraído correctamente.');
+
+            return;
+        }
+
+        // .tar.gz — intentar con tar (shell), luego PharData como fallback
+        if ($this->procOpenAvailable && $this->commandExists('tar')) {
+            $this->runShell('tar -xzf '.escapeshellarg($archivePath).' -C '.escapeshellarg($destDir), null, $log);
+
+            return;
+        }
+
+        // Fallback: PharData (PHP nativo, sin proc_open)
+        $log('tar no disponible o proc_open deshabilitado, usando PharData...');
+        try {
+            $phar = new \PharData($archivePath);
+            $phar->decompress(); // .tar.gz → .tar
+            $tarPath = str_replace('.gz', '', $archivePath);
+            $tar = new \PharData($tarPath);
+            $tar->extractTo($destDir);
+            @unlink($tarPath);
+            $log('Archivo tar.gz extraído con PharData.');
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('No se pudo extraer el archivo: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Detecta el directorio fuente real dentro del directorio extraído.
+     * GitHub genera ZIPs con un subdirectorio raíz como "repo-main/" o "repo-v1.2.3/".
+     */
+    protected function detectSourceDir(string $tmpDir, callable $log): string
+    {
+        $entries = array_values(array_filter(
+            glob($tmpDir.'/*') ?: [],
+            fn ($e) => is_dir($e)
+        ));
+
+        // Si hay exactamente un subdirectorio que contiene una estructura Laravel, úsalo
+        if (count($entries) === 1 && is_dir($entries[0].'/app')) {
+            $log('Detectado directorio raíz del paquete: '.basename($entries[0]));
+
+            return $entries[0];
+        }
+
+        return $tmpDir;
+    }
+
+    /**
+     * Sincroniza archivos desde $src a $dest, excluyendo los directorios indicados.
+     * Usa rsync si está disponible, PHP recursivo en caso contrario.
+     */
+    protected function syncFiles(string $src, string $dest, array $excludes, string $backupDir, callable $log): void
+    {
+        if ($this->rsyncAvailable && $this->procOpenAvailable) {
+            $excludeArgs = implode(' ', array_map(
+                fn ($e) => '--exclude='.escapeshellarg(trim($e, '/')),
+                $excludes
+            ));
+            $rsyncCmd = "rsync -a --delete {$excludeArgs} "
+                .'--backup --backup-dir='.escapeshellarg($backupDir).' '
+                .escapeshellarg(rtrim($src, '/').'/').' '
+                .escapeshellarg(rtrim($dest, '/').'/');
+            $this->runShell($rsyncCmd, null, $log);
+
+            return;
+        }
+
+        $log('Usando sincronización PHP recursiva (rsync/proc_open no disponible)...');
+        $this->phpSyncDir($src, $dest, $excludes, $backupDir, $log);
+    }
+
+    /**
+     * Sincronización de directorios mediante PHP puro (sin rsync).
+     */
+    protected function phpSyncDir(string $src, string $dest, array $excludes, string $backupDir, callable $log): void
+    {
+        $src = rtrim($src, '/');
+        $dest = rtrim($dest, '/');
+        $copied = 0;
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($src, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($iterator as $item) {
+            $relativePath = substr($item->getPathname(), strlen($src) + 1);
+
+            // Comprobar exclusiones (primer componente del path)
+            $firstSegment = explode(DIRECTORY_SEPARATOR, $relativePath)[0];
+            foreach ($excludes as $ex) {
+                if ($firstSegment === trim($ex, '/')) {
+                    continue 2;
+                }
+            }
+
+            $destPath = $dest.DIRECTORY_SEPARATOR.$relativePath;
+
+            if ($item->isDir()) {
+                if (! is_dir($destPath)) {
+                    mkdir($destPath, 0755, true);
+                }
+            } else {
+                // Hacer backup del fichero existente antes de sobreescribir
+                if (file_exists($destPath)) {
+                    $bkPath = $backupDir.DIRECTORY_SEPARATOR.$relativePath;
+                    if (! is_dir(dirname($bkPath))) {
+                        mkdir(dirname($bkPath), 0755, true);
+                    }
+                    copy($destPath, $bkPath);
+                }
+                if (! is_dir(dirname($destPath))) {
+                    mkdir(dirname($destPath), 0755, true);
+                }
+                copy($item->getPathname(), $destPath);
+                $copied++;
+            }
+        }
+
+        $log("Sincronización PHP completada: {$copied} archivo(s) copiado(s).");
+    }
+
+    /**
+     * Restaura el backup en caso de rollback usando PHP puro.
+     */
+    protected function phpRestoreBackup(string $backupDir, string $dest, callable $log): void
+    {
+        if ($this->rsyncAvailable && $this->procOpenAvailable) {
+            $this->runShell('rsync -a '.escapeshellarg($backupDir.'/').' '.escapeshellarg($dest.'/'), null, $log);
+
+            return;
+        }
+
+        $backupDir = rtrim($backupDir, '/');
+        $dest = rtrim($dest, '/');
+        $restored = 0;
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($backupDir, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($iterator as $item) {
+            $relativePath = substr($item->getPathname(), strlen($backupDir) + 1);
+            $destPath = $dest.DIRECTORY_SEPARATOR.$relativePath;
+
+            if ($item->isDir()) {
+                if (! is_dir($destPath)) {
+                    mkdir($destPath, 0755, true);
+                }
+            } else {
+                copy($item->getPathname(), $destPath);
+                $restored++;
+            }
+        }
+
+        $log("Rollback PHP completado: {$restored} archivo(s) restaurado(s).");
+    }
+
+    /**
+     * Llama a un comando Artisan internamente (sin proc_open).
+     * Registra la salida en el log de actualización.
+     */
+    protected function callArtisan(string $command, array $params, callable $log): void
+    {
+        $log("Artisan: {$command} ".json_encode($params));
+        Artisan::call($command, $params);
+        $output = trim(Artisan::output());
+        if ($output) {
+            $log($output);
+        }
+    }
+
+    /**
+     * Comprueba si un comando de shell existe en el PATH.
+     */
+    protected function commandExists(string $cmd): bool
+    {
+        if (! function_exists('exec')) {
+            return false;
+        }
+        $out = [];
+        $ret = 0;
+        @exec('command -v '.escapeshellarg($cmd).' 2>/dev/null', $out, $ret);
+
+        return $ret === 0 && ! empty($out);
+    }
+
 
     protected function dumpDatabaseIfPossible(string $dumpPath, callable $log): void
     {

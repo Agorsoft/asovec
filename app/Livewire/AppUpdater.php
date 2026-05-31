@@ -14,7 +14,8 @@ class AppUpdater extends Component
 
     public ?string $url = null;
 
-    public $package;
+    /** @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null */
+    public $package = null;
 
     public string $status = 'idle';
 
@@ -24,8 +25,9 @@ class AppUpdater extends Component
 
     public ?string $checksum = null;
 
+    // 256 MB: suficiente para un ZIP con vendor/ incluido
     protected $rules = [
-        'package' => 'file|max:10240', // 10MB default limit
+        'package' => 'file|max:262144',
         'url' => 'nullable|url',
     ];
 
@@ -34,91 +36,88 @@ class AppUpdater extends Component
         return view('livewire.app-updater');
     }
 
-    public function mount()
+    public function mount(): void
     {
         abort_unless(Auth::user()?->is_admin ?? false, 403);
     }
 
-    public function updatedPackage()
+    public function updatedPackage(): void
     {
         $this->validateOnly('package');
     }
 
-    public function startFromUpload()
+    public function startFromUpload(): void
     {
-        $this->validate(['package' => 'required|file|max:10240']);
+        if ($this->package === null) {
+            $this->addLog('Error: no se ha seleccionado ningún archivo.');
+            $this->status = 'failed';
+
+            return;
+        }
+
+        $this->validate(['package' => 'required|file|max:262144']);
 
         $uploadsDir = storage_path('app/updates/uploads');
         if (! is_dir($uploadsDir)) {
             mkdir($uploadsDir, 0755, true);
         }
 
-        $filename = Str::random(12).'_'.$this->package->getClientOriginalName();
+        $originalName = $this->package->getClientOriginalName();
+        $filename = Str::random(12).'_'.$originalName;
         $relativePath = 'updates/uploads/'.$filename;
 
-        // Try storeAs first
-        // Store explicitly on the local disk (storage/app)
-        $path = $this->package->storeAs('updates/uploads', $filename, 'local');
-
-        // Ensure file exists; if not, attempt move as fallback and log diagnostics
+        // Intentar storeAs en disco local
+        $this->package->storeAs('updates/uploads', $filename, 'local');
         $fullPath = storage_path('app/'.$relativePath);
+
+        // Fallback: move/copy desde tmp si storeAs falló
         if (! file_exists($fullPath)) {
-            try {
-                $this->package->move($uploadsDir, $filename);
-            } catch (\Throwable $e) {
-                // Attempt to gather diagnostic info
-                $tmpPath = method_exists($this->package, 'getRealPath') ? $this->package->getRealPath() : null;
-                $tmpPerm = ($tmpPath && file_exists($tmpPath)) ? substr(sprintf('%o', fileperms($tmpPath)), -4) : 'n/a';
-                $this->addLog('Error al mover archivo subido: '.$e->getMessage()."; tmp_path={$tmpPath}; tmp_perms={$tmpPerm}; dest={$fullPath}");
+            $tmpPath = method_exists($this->package, 'getRealPath') ? $this->package->getRealPath() : null;
 
-                // Fallback: try copy + unlink in case move/rename fails (different filesystems)
-                if ($tmpPath && file_exists($tmpPath)) {
-                    try {
-                        if (@copy($tmpPath, $fullPath)) {
-                            @chmod($fullPath, 0644);
-                            @unlink($tmpPath);
-                            $this->addLog('Archivo copiado desde tmp a destino como fallback.');
-                        } else {
-                            $this->addLog('Fallback copy failed from '.$tmpPath.' to '.$fullPath);
-                            $this->status = 'failed';
-
-                            return;
-                        }
-                    } catch (\Throwable $e2) {
-                        $this->addLog('Fallback copy exception: '.$e2->getMessage());
-                        $this->status = 'failed';
-
-                        return;
-                    }
-                } else {
+            if ($tmpPath && file_exists($tmpPath)) {
+                if (! @copy($tmpPath, $fullPath)) {
+                    $this->addLog("Error: no se pudo copiar el archivo subido a {$fullPath}.");
                     $this->status = 'failed';
 
                     return;
                 }
+                @unlink($tmpPath);
+            } else {
+                $this->addLog('Error: el archivo temporal no existe o ya fue eliminado.');
+                $this->status = 'failed';
+
+                return;
             }
         }
 
         $this->runId = date('YmdHis').'_'.bin2hex(random_bytes(4));
-
-        $this->status = 'queued';
-        RunAppUpdate::dispatch($fullPath, $this->runId, $this->checksum);
-
-        $this->addLog("Paquete subido: {$relativePath}. Trabajo encolado. runId: {$this->runId}");
         $this->status = 'running';
+        $this->addLog("Archivo recibido: {$originalName}. Iniciando actualización... runId: {$this->runId}");
+
+        try {
+            RunAppUpdate::dispatch($fullPath, $this->runId, $this->checksum);
+        } catch (\Throwable $e) {
+            $this->addLog('Error al despachar el job: '.$e->getMessage());
+            $this->status = 'failed';
+        }
     }
 
-    public function startFromUrl()
+    public function startFromUrl(): void
     {
         $this->validate(['url' => 'required|url']);
         $this->runId = date('YmdHis').'_'.bin2hex(random_bytes(4));
-
-        $this->status = 'queued';
-        RunAppUpdate::dispatch($this->url, $this->runId, $this->checksum);
-        $this->addLog("Actualización solicitada desde URL: {$this->url}. runId: {$this->runId}");
         $this->status = 'running';
+        $this->addLog("Actualización solicitada desde URL: {$this->url}. runId: {$this->runId}");
+
+        try {
+            RunAppUpdate::dispatch($this->url, $this->runId, $this->checksum);
+        } catch (\Throwable $e) {
+            $this->addLog('Error al despachar el job: '.$e->getMessage());
+            $this->status = 'failed';
+        }
     }
 
-    public function pollLogs()
+    public function pollLogs(): void
     {
         if (! $this->runId) {
             return;
@@ -130,14 +129,12 @@ class AppUpdater extends Component
 
             $lc = strtolower($content);
 
-            // Mark completed when we see the success message
-            if (str_contains($lc, 'actualización aplicada con éxito') || str_contains($lc, 'installation complete') || str_contains($lc, 'installation complete!')) {
+            if (str_contains($lc, 'actualización aplicada con éxito')) {
                 $this->status = 'completed';
 
                 return;
             }
 
-            // Mark failed on clear failure markers
             if (str_contains($lc, 'error durante la actualización') || str_contains($lc, 'comando falló') || str_contains($lc, 'falló con código')) {
                 $this->status = 'failed';
 
@@ -146,7 +143,7 @@ class AppUpdater extends Component
         }
     }
 
-    protected function addLog(string $line)
+    protected function addLog(string $line): void
     {
         $this->logs[] = '['.now()->toDateTimeString().'] '.$line;
     }
