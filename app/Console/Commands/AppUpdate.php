@@ -377,7 +377,7 @@ class AppUpdate extends Command
         }
         $out = [];
         $ret = 0;
-        @exec('command -v '.escapeshellarg($cmd).' 2>/dev/null', $out, $ret);
+        @\exec('command -v '.escapeshellarg($cmd).' 2>/dev/null', $out, $ret);
 
         return $ret === 0 && ! empty($out);
     }
@@ -385,6 +385,12 @@ class AppUpdate extends Command
 
     protected function dumpDatabaseIfPossible(string $dumpPath, callable $log): void
     {
+        if (! function_exists('exec')) {
+            $log('AVISO: exec() no disponible en este servidor — se omite el dump de BD previo a la actualización.');
+
+            return;
+        }
+
         $default = config('database.default');
         $cfg = config("database.connections.{$default}", []);
         if (empty($cfg) || empty($cfg['driver'])) {
@@ -408,7 +414,7 @@ class AppUpdate extends Command
                 escapeshellarg($host), escapeshellarg($port), escapeshellarg($user), escapeshellarg($db), escapeshellarg($dumpPath)
             );
             $log('Ejecutando: '.$cmd);
-            @exec($cmd, $out, $ret);
+            @\exec($cmd, $out, $ret);
             if ($ret !== 0) {
                 $log('mysqldump no disponible o fallo al crear dump.');
             }
@@ -420,7 +426,7 @@ class AppUpdate extends Command
             $db = $cfg['database'] ?? null;
             $log('Intentando pg_dump para '.$db);
             $cmd = sprintf('pg_dump %s > %s', escapeshellarg($db), escapeshellarg($dumpPath));
-            @exec($cmd, $out, $ret);
+            @\exec($cmd, $out, $ret);
             if ($ret !== 0) {
                 $log('pg_dump no disponible o fallo al crear dump.');
             }
@@ -433,6 +439,12 @@ class AppUpdate extends Command
 
     protected function restoreDatabaseIfPossible(string $dumpPath, callable $log): void
     {
+        if (! function_exists('exec')) {
+            $log('AVISO: exec() no disponible — no se puede restaurar el dump de BD automáticamente.');
+
+            return;
+        }
+
         $default = config('database.default');
         $cfg = config("database.connections.{$default}", []);
         if (empty($cfg) || empty($cfg['driver'])) {
@@ -448,7 +460,7 @@ class AppUpdate extends Command
             $port = $cfg['port'] ?? 3306;
             $cmd = sprintf('mysql -h %s -P %s -u %s %s < %s', escapeshellarg($host), escapeshellarg($port), escapeshellarg($user), escapeshellarg($db), escapeshellarg($dumpPath));
             $log('Ejecutando: '.$cmd);
-            @exec($cmd, $out, $ret);
+            @\exec($cmd, $out, $ret);
             if ($ret !== 0) {
                 $log('mysql no disponible o fallo al restaurar dump.');
             }
@@ -459,7 +471,7 @@ class AppUpdate extends Command
         if ($cfg['driver'] === 'pgsql') {
             $db = $cfg['database'] ?? null;
             $cmd = sprintf('psql %s < %s', escapeshellarg($db), escapeshellarg($dumpPath));
-            @exec($cmd, $out, $ret);
+            @\exec($cmd, $out, $ret);
             if ($ret !== 0) {
                 $log('psql no disponible o fallo al restaurar dump.');
             }
